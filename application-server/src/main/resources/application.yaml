@@ -2,7 +2,7 @@ spring:
   application:
     name: merge-build-repeat
   datasource:
-    url: jdbc:postgresql://localhost:5432/mydb
+    url: jdbc:postgresql://localhost:5432/game_db
     username: postgres
     password: yourpassword
     driver-class-name: org.postgresql.Driver
