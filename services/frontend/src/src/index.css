@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@source "../components/**/*.tsx";
+@source "./pages/**/*.tsx";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: 'Epilogue', 'Epilogue Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Space Grotesk', 'Space Grotesk Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --radius-sm: 0.625rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  --color-background: #1a1a1a;
+  --color-foreground: #ffffff;
+  --color-card: #2a2a2a;
+  --color-card-foreground: #ffffff;
+  --color-popover: #2a2a2a;
+  --color-popover-foreground: #ffffff;
+  
+  --color-primary: #ffc300;
+  --color-primary-foreground: #1a1a1a;
+  
+  --color-secondary: #4834d4;
+  --color-secondary-foreground: #ffffff;
+  
+  --color-accent: #f97316;
+  --color-accent-foreground: #ffffff;
+  
+  --color-muted: #3a3a3a;
+  --color-muted-foreground: #a1a1aa;
+  
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+  
+  --color-border: #3a3a3a;
+  --color-input: #3a3a3a;
+  --color-ring: #ffc300;
+  
+  --color-chart-1: #ffc300;
+  --color-chart-2: #f97316;
+  --color-chart-3: #4834d4;
+  --color-chart-4: #dc2626;
+  --color-chart-5: #22c55e;
+  
+  --color-sidebar: #1a1a1a;
+  --color-sidebar-foreground: #ffffff;
+  --color-sidebar-primary: #ffc300;
+  --color-sidebar-primary-foreground: #1a1a1a;
+  --color-sidebar-accent: #f97316;
+  --color-sidebar-accent-foreground: #ffffff;
+  --color-sidebar-border: #3a3a3a;
+  --color-sidebar-ring: #ffc300;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased min-h-screen;
+  }
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+}

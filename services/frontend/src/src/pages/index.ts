@@ -1,0 +1,5 @@
+export { default as HomePage } from './HomePage'
+export { default as GamePage } from './GamePage'
+export { default as StatsPage } from './StatsPage'
+export { default as AIPage } from './AIPage'
+export { default as RankPage } from './RankPage'
