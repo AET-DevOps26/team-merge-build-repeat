@@ -12,6 +12,47 @@ explaining mistakes, and teaching relevant solving strategies.
 Instead of only giving the next answer, the system aims to guide users through the logical reasoning process,
 helping them learn Sudoku techniques and improve their problem-solving skills.
 
+## Core Concept and Usage
+
+### What is the main functionality?
+
+The main functionality is an interactive Sudoku learning platform.
+Users can solve Sudoku puzzles, enter numbers and notes, receive feedback on their progress, and continue unfinished games later.
+The platform goes beyond a classic Sudoku game by explaining why a move is valid or invalid and by teaching the solving techniques behind the next logical steps.
+
+### Who are the intended users?
+
+The intended users are Sudoku players who want to improve their skills instead of only completing puzzles.
+This includes beginners who need guidance with basic rules and candidates, intermediate players who want to learn common solving strategies,
+and experienced players who want structured feedback on mistakes, solving time, and hint usage.
+Administrators may also use the platform to manage users, monitor the system, and maintain puzzle content.
+
+### How will you integrate GenAI meaningfully?
+
+Generative AI will be integrated as a contextual tutor rather than as a simple answer generator.
+The GenAI Service uses the current board state, user actions, mistake history, and reliable solving results from the Game Engine Service
+to generate hints, explanations, and learning-oriented feedback.
+This allows the system to provide different levels of help, such as a small non-spoiler hint, an explanation of a specific mistake,
+or a step-by-step walkthrough of a solving technique.
+The AI therefore supports learning and reasoning while the deterministic engine remains responsible for rule-based correctness.
+
+### Describe some scenarios how your app will function?
+
+In a typical solving scenario, a user starts a new Sudoku puzzle in the frontend.
+The Application API loads a puzzle template, creates a game state, and stores the current progress in the Game Database Service.
+As the user fills cells or adds pencil notes, the game state is updated so the puzzle can be resumed later.
+
+When the user is stuck, they can ask the AI assistant for help.
+The Application API sends the current board to the Game Engine Service to identify valid candidates and the next logical move.
+The GenAI Service then turns this solver information into a user-friendly explanation that matches the requested hint level.
+
+When the user makes a mistake, the platform can either warn them immediately or support delayed review depending on the selected settings.
+The AI assistant can explain why the move conflicts with Sudoku rules and suggest how to recover without simply revealing the full solution.
+
+After completing a puzzle, the user can open a review screen.
+The platform summarizes solving time, mistakes, used hints, and completed techniques.
+The GenAI Service can generate personalized feedback and recommend what the user should practice next.
+
 ## Components
 
 ### Authentication Service
