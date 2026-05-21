@@ -14,7 +14,6 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@RequiredArgsConstructor
 public class GameHistory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

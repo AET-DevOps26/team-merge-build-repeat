@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface GameTemplateRepository extends JpaRepository<GameTemplate, Long> {
-    GameTemplate findByFilename(String filename);
+//    GameTemplate findByFilename(String filename);
 
 }

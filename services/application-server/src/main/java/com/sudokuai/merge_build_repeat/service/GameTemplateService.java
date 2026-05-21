@@ -19,7 +19,7 @@ public class GameTemplateService {
         repository.save(template);
     }
 
-    public GameTemplate getTemplateByFilename(String filename) {
-        return repository.findByFilename(filename);
-    }
+//    public GameTemplate getTemplateByFilename(String filename) {
+//        return repository.findByFilename(filename);
+//    }
 }
