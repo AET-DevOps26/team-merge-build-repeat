@@ -1,0 +1,51 @@
+services:
+  chat-database:
+    build:
+      context: ./services/chat-database
+    depends_on:
+      chat-database-postgres:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_IMPORT: optional:configtree:/run/secrets/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://chat-database-postgres:5432/${CHAT_DATABASE_NAME:-chat_database}
+      SPRING_DATASOURCE_USERNAME: ${CHAT_DATABASE_USER:-chat_user}
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_PROFILES_ACTIVE: ${CHAT_DATABASE_SPRING_PROFILE:-docker}
+    ports:
+      - "127.0.0.1:${CHAT_DATABASE_API_PORT:-8083}:8080"
+    secrets:
+      - source: chat_database_password
+        target: spring.datasource.password
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+
+  chat-database-postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${CHAT_DATABASE_NAME:-chat_database}
+      POSTGRES_USER: ${CHAT_DATABASE_USER:-chat_user}
+      POSTGRES_PASSWORD_FILE: /run/secrets/chat_database_password
+    ports:
+      - "127.0.0.1:${CHAT_DATABASE_POSTGRES_PORT:-5431}:5432"
+    volumes:
+      - chat-database-postgres-data:/var/lib/postgresql/data
+    secrets:
+      - source: chat_database_password
+        target: chat_database_password
+    healthcheck:
+      test:
+        ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  chat-database-postgres-data:
+
+secrets:
+  chat_database_password:
+    file: ${CHAT_DATABASE_PASSWORD_FILE:-./secrets/chat_database_password}
