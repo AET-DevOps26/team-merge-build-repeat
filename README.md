@@ -57,7 +57,7 @@ curl http://127.0.0.1:8083/actuator/health
 The default local endpoints are:
 
 - Chat database service: `http://127.0.0.1:8083`
-- Application service: `http://127.0.0.1:8080`
+- Application service: `http://127.0.0.1:8081`
 - PostgreSQL chat database: `http://127.0.0.1:5431`
 - PostgreSQL application: `http://127.0.0.1:5432`
 
