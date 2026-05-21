@@ -3,7 +3,7 @@ services:
     build:
       context: ./services/genai
     ports:
-      - "${GENAI_HOST_PORT:-8000}:8080"
+      - "127.0.0.1:${GENAI_HOST_PORT:-8000}:8080"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health"]
       interval: 10s
