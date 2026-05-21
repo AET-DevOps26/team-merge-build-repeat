@@ -58,6 +58,14 @@ This allows users to resume unfinished games and review previously completed puz
 - Java 21
 - Postgress Database
 
+### Chat Database Service
+
+The Chat Service stores and manages the user’s active and past chat histories.
+
+- Spring Boot REST API
+- Java 21
+- Postgress Database
+
 ### Frontend
 
 The Frontend provides the user interface of the Sudoku platform and connects the user with the different backend services.
