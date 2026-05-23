@@ -1,19 +1,33 @@
 # Secrets
 
-This directory is used for local Docker Compose secrets.
+This directory contains the tracked manifest for local Docker Compose secrets.
+Generated secret values stay local and are ignored by Git.
 
 ## Important
 
 - Do not commit real secret values to the repository.
-- Keep generated secret files local.
-- Commit only documentation, examples, or manifests that do not contain sensitive values.
+- Commit only documentation, examples, and `secret.manifest.toml`.
+- The generated `chat_database_password` file must remain local.
 
 ## Creating Secrets
 
-Secrets can be generated with `secretctl`:
+From the repository root, run:
 
 ```bash
-secretctl
+make secrets
 ```
 
-Project: https://github.com/DarkbreakerDE/secretctl
+This installs `secretctl` if needed and then runs:
+
+```bash
+secretctl apply
+```
+
+The Makefile auto-detects `python3`, `python`, or the Windows `py` launcher.
+You can override it if needed:
+
+```bash
+make secrets PYTHON=python
+```
+
+For details about the helper scripts, see `../scripts/README.md`.
