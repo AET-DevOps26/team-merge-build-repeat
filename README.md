@@ -32,6 +32,7 @@ secretctl
 
 The following secret files are expected:
 
+- `secrets/app_database_password`
 - `secrets/chat_database_password`
 
 ## Run The Project

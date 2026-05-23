@@ -1,10 +1,11 @@
 spring:
+  config:
+    import: ${SPRING_CONFIG_IMPORT:optional:configtree:/run/secrets/}
   application:
     name: merge-build-repeat
   datasource:
     url: jdbc:postgresql://localhost:5432/game_db
     username: postgres
-    password: yourpassword
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
