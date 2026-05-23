@@ -9,6 +9,11 @@ Generated secret values stay local and are ignored by Git.
 - Commit only documentation, examples, and `secret.manifest.toml`.
 - The generated `chat_database_password` file must remain local.
 
+The local Compose stack expects these generated files:
+
+- `app_database_password`
+- `chat_database_password`
+
 ## Creating Secrets
 
 From the repository root, run:
