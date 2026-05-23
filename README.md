@@ -20,15 +20,11 @@ Create the required database password secret with one of these options.
 
 Option 1: create the secret file manually by editing the file.
 
-Option 2: generate the secret with `secretctl`:
+Option 2: install `secretctl` and generate the secret:
 
 ```bash
-secretctl
+make secrets
 ```
-
-`secretctl` is available here:
-
-<https://github.com/DarkbreakerDE/secretctl>
 
 The following secret files are expected:
 
