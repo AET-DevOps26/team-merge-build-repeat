@@ -57,6 +57,7 @@ The default local endpoints are:
 - Application service: `http://127.0.0.1:8081`
 - PostgreSQL chat database: `http://127.0.0.1:5431`
 - PostgreSQL application: `http://127.0.0.1:5432`
+- Frontend service: `http://127.0.0.1:8090`
 
 ## Stop The Project
 
