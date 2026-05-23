@@ -17,7 +17,7 @@ services:
       context: ./services/frontend
       dockerfile: Dockerfile.dev
     ports:
-      - "127.0.0.1:${FRONTEND_DEV_HOST_PORT_API_PORT:-5173}:5173"
+      - "127.0.0.1:${FRONTEND_DEV_HOST_PORT:-5173}:5173"
     volumes:
       - ./services/frontend:/app
       - /app/node_modules
