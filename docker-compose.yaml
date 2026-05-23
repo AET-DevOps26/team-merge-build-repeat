@@ -22,7 +22,7 @@ services:
       - ./services/frontend:/app
       - /app/node_modules
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5173/"]
       interval: 10s
       timeout: 5s
       retries: 5
