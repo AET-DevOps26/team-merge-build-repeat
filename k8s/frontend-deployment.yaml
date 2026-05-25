@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: merge-build-repeat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: team-merge-build-repeat-frontend:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+          # Uncomment and adjust if mounting custom nginx.conf
+          volumeMounts:
+             - name: nginx-conf
+               mountPath: /etc/nginx/nginx.conf
+               subPath: nginx.conf
+      volumes:
+         - name: nginx-conf
+           configMap:
+             name: frontend-nginx-conf
