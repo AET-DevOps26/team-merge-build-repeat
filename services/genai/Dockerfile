@@ -22,7 +22,7 @@ FROM python:3.12-slim
 
 ENV PATH="/app/.venv/bin:$PATH" \
   PYTHONUNBUFFERED=1 \
-  GENAI_PORT=8080
+  GENAI_SERVICE_PORT=8080
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends curl \
@@ -44,4 +44,4 @@ USER app
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "exec uvicorn genai_service.main:app --host 0.0.0.0 --port ${GENAI_PORT:-8080}"]
+CMD ["sh", "-c", "exec uvicorn genai_service.main:app --host 0.0.0.0 --port ${GENAI_SERVICE_PORT:-8080}"]

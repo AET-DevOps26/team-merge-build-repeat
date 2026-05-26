@@ -21,6 +21,11 @@ RUN pnpm build
 
 FROM nginxinc/nginx-unprivileged:1.29-alpine AS runtime
 
+# Switch to root to configure PID file permissions, then revert to unprivileged user
+USER root
+RUN mkdir -p /run && touch /run/nginx.pid && chown -R 101:0 /run/nginx.pid
+USER 101
+
 COPY --chown=101:0 nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 

@@ -31,7 +31,7 @@ spec:
               cpu: "1000m"
           livenessProbe:
             httpGet:
-              path: /health
+              path: /actuator/health
               port: 8000
             initialDelaySeconds: 30
             periodSeconds: 10
@@ -39,7 +39,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /health
+              path: /actuator/health # fix /actuator/readiness
               port: 8000
             initialDelaySeconds: 15
             periodSeconds: 5
