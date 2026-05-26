@@ -4,8 +4,9 @@ spring:
   application:
     name: merge-build-repeat
   datasource:
-    url: jdbc:postgresql://localhost:5432/game_db
-    username: postgres
+    url: jdbc:postgresql://${DATABASE_HOST:application-database}:${DATABASE_PORT:5432}/${DATABASE_NAME:game_database}
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:alnvicawlae}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
