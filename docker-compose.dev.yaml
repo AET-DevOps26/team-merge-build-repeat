@@ -1,7 +1,6 @@
 services:
   caddy:
     image: caddy:2-alpine
-    pull_policy: build
     profiles: ["proxy"]
     ports:
       - "127.0.0.1:${CADDY_HTTP_PORT:-8088}:80"
