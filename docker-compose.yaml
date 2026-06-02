@@ -1,9 +1,6 @@
 services:
   frontend:
-    build:
-      context: ./services/frontend
-    ports:
-      - "127.0.0.1:${FRONTEND_HOST_PORT:-8090}:8080"
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-frontend:${IMAGE_TAG:-latest}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health"]
       interval: 10s
@@ -11,28 +8,8 @@ services:
       retries: 5
       start_period: 20s
 
-  frontend-dev:
-    profiles: ["dev"] 
-    build:
-      context: ./services/frontend
-      dockerfile: Dockerfile.dev
-    ports:
-      - "127.0.0.1:${FRONTEND_DEV_HOST_PORT:-5173}:5173"
-    volumes:
-      - ./services/frontend:/app
-      - /app/node_modules
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5173/"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
   genai:
-    build:
-      context: ./services/genai
-    ports:
-      - "127.0.0.1:${GENAI_HOST_PORT:-8000}:8080"
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-genai:${IMAGE_TAG:-latest}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health"]
       interval: 10s
@@ -46,8 +23,6 @@ services:
       POSTGRES_DB: ${APP_DATABASE_NAME:-game_database}
       POSTGRES_USER: ${APP_DATABASE_USER:-postgres}
       POSTGRES_PASSWORD_FILE: /run/secrets/app_database_password
-    ports:
-      - "127.0.0.1:${APP_DATABASE_POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     secrets:
@@ -61,10 +36,7 @@ services:
       retries: 5
 
   application:
-    build:
-      context: ./services/application
-    ports:
-      - "127.0.0.1:${APP_HOST_PORT:-8081}:8080"
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-application:${IMAGE_TAG:-latest}
     environment:
       # Overrides the application.yaml URL to point to the db container
       SPRING_CONFIG_IMPORT: optional:configtree:/run/secrets/
@@ -84,8 +56,7 @@ services:
       start_period: 30s
 
   chat:
-    build:
-      context: ./services/chat-database
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-chat:${IMAGE_TAG:-latest}
     depends_on:
       chat-database:
         condition: service_healthy
@@ -95,8 +66,6 @@ services:
       SPRING_DATASOURCE_USERNAME: ${CHAT_DATABASE_USER:-chat_user}
       SPRING_FLYWAY_ENABLED: "true"
       SPRING_PROFILES_ACTIVE: ${CHAT_DATABASE_SPRING_PROFILE:-docker}
-    ports:
-      - "127.0.0.1:${CHAT_DATABASE_API_PORT:-8083}:8080"
     secrets:
       - source: chat_database_password
         target: spring.datasource.password
@@ -113,8 +82,6 @@ services:
       POSTGRES_DB: ${CHAT_DATABASE_NAME:-chat_database}
       POSTGRES_USER: ${CHAT_DATABASE_USER:-chat_user}
       POSTGRES_PASSWORD_FILE: /run/secrets/chat_database_password
-    ports:
-      - "127.0.0.1:${CHAT_DATABASE_POSTGRES_PORT:-5431}:5432"
     volumes:
       - chat-database-postgres-data:/var/lib/postgresql/data
     secrets:

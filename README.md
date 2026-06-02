@@ -36,7 +36,13 @@ The following secret files are expected:
 Start the local stack:
 
 ```bash
-docker compose up -d --build
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d --build
+```a
+
+Start the Vite development frontend in addition to the containerized frontend:
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml --profile dev up -d --build
 ```
 
 Check the running services:
