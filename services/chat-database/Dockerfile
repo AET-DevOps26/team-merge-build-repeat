@@ -3,12 +3,15 @@
 FROM eclipse-temurin:25-jdk-noble AS build
 WORKDIR /workspace
 
+ARG APP_VERSION=0.0.1-SNAPSHOT
+ARG GIT_COMMIT=unknown
+
 COPY gradlew settings.gradle build.gradle ./
 COPY gradle gradle
 RUN chmod +x gradlew && ./gradlew --no-daemon dependencies
 
 COPY src src
-RUN ./gradlew --no-daemon bootJar
+RUN ./gradlew --no-daemon -PappVersion="${APP_VERSION}" -PgitCommit="${GIT_COMMIT}" bootJar
 
 FROM eclipse-temurin:25-jre-noble
 

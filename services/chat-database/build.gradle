@@ -5,7 +5,9 @@ plugins {
 }
 
 group = 'team-merge-build-repeat'
-version = '0.0.1-SNAPSHOT'
+version = providers.gradleProperty('appVersion').orElse('0.0.1-SNAPSHOT').get()
+
+def gitCommit = providers.gradleProperty('gitCommit').orElse('unknown').get()
 
 java {
 	toolchain {
@@ -15,6 +17,16 @@ java {
 
 repositories {
 	mavenCentral()
+}
+
+springBoot {
+	buildInfo {
+		properties {
+			additional = [
+				commit: gitCommit
+			]
+		}
+	}
 }
 
 dependencies {

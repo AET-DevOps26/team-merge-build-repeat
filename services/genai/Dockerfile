@@ -1,5 +1,7 @@
 FROM python:3.12-slim AS builder
 
+ARG APP_VERSION=0.0.1-SNAPSHOT
+
 COPY --from=ghcr.io/astral-sh/uv:0.11.15 /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1 \
@@ -20,9 +22,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.12-slim
 
+ARG APP_VERSION=0.0.1-SNAPSHOT
+ARG GIT_COMMIT=unknown
+
 ENV PATH="/app/.venv/bin:$PATH" \
   PYTHONUNBUFFERED=1 \
   GENAI_PORT=8080
+  APP_VERSION="${APP_VERSION}" \
+  GIT_COMMIT="${GIT_COMMIT}"
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends curl \
