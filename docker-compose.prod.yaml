@@ -1,4 +1,18 @@
 services:
+  caddy:
+    profiles: !reset []
+    pull_policy: always
+    restart: unless-stopped
+    ports: !override
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN for production Caddy}
+    depends_on:
+      frontend:
+        condition: service_healthy
+
   frontend:
     pull_policy: always
     restart: unless-stopped
