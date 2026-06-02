@@ -1,0 +1,123 @@
+---
+- name: Deploy production Docker Compose stack
+  hosts: "{{ target_hosts | default('production') }}"
+  become: true
+  vars:
+    compose_command: >-
+      docker compose
+      --project-name {{ compose_project_name }}
+      -f {{ deployment_root }}/docker-compose.yaml
+      -f {{ deployment_root }}/docker-compose.prod.yaml
+  pre_tasks:
+    - name: Validate required production settings
+      ansible.builtin.assert:
+        that:
+          - domain is defined
+          - domain | length > 0
+          - domain != "example.com"
+          - image_tag is defined
+          - image_tag | length > 0
+          - image_tag != "latest"
+          - ansible_os_family == "Debian"
+          - app_database_password is defined
+          - app_database_password | length > 0
+          - chat_database_password is defined
+          - chat_database_password | length > 0
+        fail_msg: Set domain, a non-latest image_tag, both database passwords, and use a Debian/Ubuntu VM.
+
+  tasks:
+    - name: Install Docker and Compose plugin
+      ansible.builtin.apt:
+        name: "{{ docker_apt_packages }}"
+        state: present
+        update_cache: true
+
+    - name: Ensure Docker service is running
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Create deployment directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "{{ item.mode }}"
+      loop:
+        - path: "{{ deployment_root }}"
+          mode: "0755"
+        - path: "{{ deployment_root }}/secrets"
+          mode: "0700"
+
+    - name: Copy Docker Compose files
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../{{ item }}"
+        dest: "{{ deployment_root }}/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ compose_files }}"
+
+    - name: Render production environment file
+      ansible.builtin.template:
+        src: prod.env.j2
+        dest: "{{ deployment_root }}/.env"
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Write Compose secret files
+      ansible.builtin.copy:
+        content: "{{ item.value }}"
+        dest: "{{ deployment_root }}/secrets/{{ item.name }}"
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+      loop:
+        - name: app_database_password
+          value: "{{ app_database_password }}"
+        - name: chat_database_password
+          value: "{{ chat_database_password }}"
+
+    - name: Login to GHCR when credentials are configured
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          printf '%s' "$GHCR_TOKEN" | docker login {{ ghcr_registry }} --username "$GHCR_USERNAME" --password-stdin
+        executable: /bin/bash
+      environment:
+        GHCR_USERNAME: "{{ ghcr_username }}"
+        GHCR_TOKEN: "{{ ghcr_token }}"
+      changed_when: false
+      no_log: true
+      when:
+        - ghcr_username | length > 0
+        - ghcr_token | length > 0
+
+    - name: Pull production images
+      ansible.builtin.command:
+        cmd: "{{ compose_command }} pull"
+        chdir: "{{ deployment_root }}"
+      register: compose_pull
+      changed_when: "'Downloaded newer image' in compose_pull.stdout or 'Pull complete' in compose_pull.stdout"
+
+    - name: Start production stack
+      ansible.builtin.command:
+        cmd: "{{ compose_command }} up -d --remove-orphans"
+        chdir: "{{ deployment_root }}"
+      register: compose_up
+      changed_when: "'Started' in compose_up.stdout or 'Created' in compose_up.stdout or 'Recreated' in compose_up.stdout or 'Running' in compose_up.stdout"
+
+    - name: Show stack status
+      ansible.builtin.command:
+        cmd: "{{ compose_command }} ps"
+        chdir: "{{ deployment_root }}"
+      register: compose_ps
+      changed_when: false
+
+    - name: Print stack status
+      ansible.builtin.debug:
+        var: compose_ps.stdout_lines

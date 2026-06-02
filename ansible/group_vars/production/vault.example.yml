@@ -1,0 +1,12 @@
+---
+# Copy this file to vault.yml, fill the values, then encrypt it:
+# ansible-vault encrypt ansible/group_vars/production/vault.yml
+#
+# The encrypted file can be used locally with:
+# ansible-playbook ansible/playbooks/deploy.yml --ask-vault-pass
+#
+# In GitHub Actions, pass the same values as repository/environment secrets
+# or decrypt the vault with a vault password secret.
+
+app_database_password: change-me
+chat_database_password: change-me

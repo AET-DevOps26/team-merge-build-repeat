@@ -1,0 +1,27 @@
+---
+deployment_root: /opt/team-merge-build-repeat
+compose_project_name: team-merge-build-repeat
+
+domain: example.com
+image_tag: latest
+
+app_database_name: game_database
+app_database_user: postgres
+
+chat_database_name: chat_database
+chat_database_user: chat_user
+chat_database_spring_profile: docker
+
+# Optional. Set these when the GHCR images are private.
+ghcr_registry: ghcr.io
+ghcr_username: ""
+ghcr_token: ""
+
+docker_apt_packages:
+  - docker.io
+  - docker-compose-plugin
+  - python3-docker
+
+compose_files:
+  - docker-compose.yaml
+  - docker-compose.prod.yaml

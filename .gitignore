@@ -218,6 +218,10 @@ env/
 venv/
 ENV/
 env.bak/
+
+# Ansible local deployment state
+ansible/inventory/production.ini
+ansible/group_vars/production/vault.yml
 venv.bak/
 
 # Spyder project settings
@@ -304,4 +308,3 @@ thumb
 sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/react
-
