@@ -1,0 +1,18 @@
+subscription_id = "00000000-0000-0000-0000-000000000000"
+
+location        = "swedencentral"
+resource_prefix = "tmbr-docker"
+
+admin_username     = "azureuser"
+ssh_public_key_path = "~/.ssh/azure.pub"
+
+# Recommended: use your own public IP with /32.
+# You can get it with: curl https://ifconfig.me
+# * is not secure, but easy for testing. It would be hard to whitelist a github action runner.
+ssh_source_address_prefix = "*" 
+
+tags = {
+    project     = "team-merge-build-repeat"
+    environment = "prod"
+    managed_by  = "terraform"
+}
