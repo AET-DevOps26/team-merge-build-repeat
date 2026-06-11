@@ -44,9 +44,9 @@ jobs:
       fail-fast: false
       matrix:
         service:
-          # - name: caddy
-          #   context: ./services/caddy
-          #   image: caddy
+          - name: caddy
+            context: ./services/caddy
+            image: caddy
           - name: frontend
             context: ./services/frontend
             image: frontend

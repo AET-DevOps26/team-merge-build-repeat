@@ -1,4 +1,14 @@
 services:
+  caddy:
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-caddy:${IMAGE_TAG:-latest}
+    profiles: ["proxy"]
+    depends_on:
+      frontend:
+        condition: service_healthy
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
   frontend:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-frontend:${IMAGE_TAG:-latest}
     healthcheck:
@@ -101,5 +111,7 @@ secrets:
     file: ${CHAT_DATABASE_PASSWORD_FILE:-./secrets/chat_database_password}
 
 volumes:
+  caddy_data:
+  caddy_config:
   postgres_data:
   chat-database-postgres-data:
