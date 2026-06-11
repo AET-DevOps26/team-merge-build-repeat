@@ -4,7 +4,7 @@ spring:
   application:
     name: merge-build-repeat
   datasource:
-    url: jdbc:postgresql://localhost:5432/game_db
+    url: jdbc:postgresql://localhost:5432/game_database
     username: postgres
     driver-class-name: org.postgresql.Driver
   jpa:

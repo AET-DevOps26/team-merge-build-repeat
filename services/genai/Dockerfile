@@ -51,4 +51,4 @@ USER app
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "exec uvicorn genai_service.main:app --host 0.0.0.0 --port ${GENAI_PORT:-8080}"]
+CMD ["sh", "-c", "exec uvicorn genai_service.main:app --host 0.0.0.0 --port 8080"]
