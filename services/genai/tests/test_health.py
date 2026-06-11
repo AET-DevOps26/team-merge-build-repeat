@@ -10,3 +10,13 @@ def test_actuator_health_returns_up() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "UP"}
+
+
+def test_actuator_info_returns_version() -> None:
+    client = TestClient(app)
+
+    response = client.get("/actuator/info")
+
+    assert response.status_code == 200
+    assert response.json()["build"]["version"] == "0.1.0"
+    assert response.json()["build"]["commit"] == "unknown"
