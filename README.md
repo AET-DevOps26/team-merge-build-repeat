@@ -33,17 +33,68 @@ The following secret files are expected:
 
 ## Run The Project
 
-Start the local stack:
+Docker Compose is split into a shared base file and environment-specific
+overrides:
+
+- `docker-compose.yaml` contains the shared service definitions.
+- `docker-compose.dev.yaml` is used for local development, exposes services on
+  localhost, and can build local images.
+- `docker-compose.prod.yaml` is used for production, enables restart policies,
+  uses production Caddy ports, and expects production configuration such as
+  `DOMAIN`.
+
+Start the local development stack:
 
 ```bash
-docker compose up -d --build
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d --build
+```
+
+Start the production stack:
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
 ```
 
 Check the running services:
 
 ```bash
-docker compose ps
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml ps
 ```
+
+Show logs:
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml logs -f
+```
+
+The `Justfile` can be used as a shorter wrapper around Docker Compose commands:
+
+```bash
+just dev up -d --build
+just dev ps
+just dev logs -f
+just dev down
+just prod up -d
+just prod ps
+```
+
+## Stop The Project
+
+Stop the containers while keeping the database volume:
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down
+```
+
+Stop the containers and delete the local database volume:
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down -v
+```
+
+Use `down -v` only when you intentionally want to reset the local PostgreSQL data.
+
+## Health Checks
 
 Check the application health endpoints:
 
@@ -58,19 +109,3 @@ The default local endpoints are:
 - PostgreSQL chat database: `http://127.0.0.1:5431`
 - PostgreSQL application: `http://127.0.0.1:5432`
 - Frontend service: `http://127.0.0.1:8090`
-
-## Stop The Project
-
-Stop the containers while keeping the database volume:
-
-```bash
-docker compose down
-```
-
-Stop the containers and delete the local database volume:
-
-```bash
-docker compose down -v
-```
-
-Use `down -v` only when you intentionally want to reset the local PostgreSQL data.

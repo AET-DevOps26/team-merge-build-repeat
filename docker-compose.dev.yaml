@@ -1,0 +1,53 @@
+services:
+  frontend:
+    build:
+      context: ./services/frontend
+    ports:
+      - "127.0.0.1:${FRONTEND_HOST_PORT:-8090}:8080"
+
+  frontend-dev:
+    profiles: ["dev"]
+    pull_policy: build
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "127.0.0.1:${FRONTEND_DEV_HOST_PORT:-5173}:5173"
+    volumes:
+      - ./services/frontend:/app
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  genai:
+    pull_policy: build
+    build:
+      context: ./services/genai
+    ports:
+      - "127.0.0.1:${GENAI_HOST_PORT:-8000}:8080"
+
+  application:
+    pull_policy: build
+    build:
+      context: ./services/application
+    ports:
+      - "127.0.0.1:${APP_HOST_PORT:-8081}:8080"
+
+  application-database:
+    ports:
+      - "127.0.0.1:${APP_DATABASE_POSTGRES_PORT:-5432}:5432"
+
+  chat:
+    pull_policy: build
+    build:
+      context: ./services/chat-database
+    ports:
+      - "127.0.0.1:${CHAT_DATABASE_API_PORT:-8083}:8080"
+
+  chat-database:
+    ports:
+      - "127.0.0.1:${CHAT_DATABASE_POSTGRES_PORT:-5431}:5432"

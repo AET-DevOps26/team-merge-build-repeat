@@ -1,0 +1,25 @@
+services:
+  frontend:
+    pull_policy: always
+    restart: unless-stopped
+
+  genai:
+    pull_policy: always
+    restart: unless-stopped
+
+  application:
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_SHOW_SQL: "false"
+
+  chat:
+    pull_policy: always
+    restart: unless-stopped
+
+  application-database:
+    restart: unless-stopped
+
+  chat-database:
+    restart: unless-stopped
