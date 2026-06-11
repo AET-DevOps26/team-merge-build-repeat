@@ -1,0 +1,219 @@
+openapi: 3.1.0
+info:
+  title: Chat Database Service API
+  version: 1.0.0
+  description: >
+    Stores and retrieves AI chat messages for Sudoku games. Each Sudoku game has
+    exactly one AI chat. Chats are created lazily when they are first read or
+    written.
+security:
+  - bearerAuth: []
+tags:
+  - name: Chat
+    description: Chat history operations for Sudoku games.
+paths:
+  /v1/chat/{gameId}:
+    get:
+      tags:
+        - Chat
+      summary: Get the AI chat for a Sudoku game
+      description: >
+        Returns the AI chat for the requested Sudoku game. If the authenticated
+        user owns the game and the chat has no messages yet, the service returns
+        an empty chat with an empty messages array.
+      operationId: getGameChat
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      responses:
+        "200":
+          description: The chat for the Sudoku game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /v1/chat/{gameId}/messages:
+    post:
+      tags:
+        - Chat
+      summary: Append a message to the AI chat for a Sudoku game
+      description: >
+        Stores one new chat message for the requested Sudoku game. Messages are
+        append-only in this API version and are returned chronologically, oldest
+        first, when the chat is read.
+      operationId: createGameChatMessage
+      parameters:
+        - $ref: "#/components/parameters/GameId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChatMessageRequest"
+      responses:
+        "201":
+          description: The message was stored.
+          headers:
+            Location:
+              description: The URI of the chat that contains the new message.
+              schema:
+                type: string
+                format: uri-reference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        A valid JWT for a logged-in user. The authenticated user may only access
+        chats for Sudoku games they own.
+  parameters:
+    GameId:
+      name: gameId
+      in: path
+      required: true
+      description: The Sudoku game ID from the application service.
+      schema:
+        $ref: "#/components/schemas/GameId"
+  responses:
+    BadRequest:
+      description: The request is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Authentication is required or the provided token is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: The authenticated user is not allowed to access this game chat.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalServerError:
+      description: An unexpected server error occurred.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    GameId:
+      type: string
+      format: uuid
+      description: The Sudoku game ID from the application service.
+    ChatMessageId:
+      type: string
+      format: uuid
+      description: Server-generated chat message ID.
+    ChatMessages:
+      type: array
+      description: Chat messages ordered chronologically, oldest first.
+      items:
+        $ref: "#/components/schemas/ChatMessage"
+    ChatMessageContent:
+      type: string
+      description: The chat message text.
+      minLength: 1
+      maxLength: 10000
+    ChatMessageCreatedAt:
+      type: string
+      format: date-time
+      description: Server-generated chat message creation timestamp.
+    ChatMessageRole:
+      type: string
+      description: The author role of a chat message.
+      enum:
+        - user
+        - assistant
+    ChatResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - gameId
+        - messages
+      properties:
+        gameId:
+          $ref: "#/components/schemas/GameId"
+        messages:
+          $ref: "#/components/schemas/ChatMessages"
+    CreateChatMessageRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - role
+        - content
+      properties:
+        role:
+          $ref: "#/components/schemas/ChatMessageRole"
+        content:
+          $ref: "#/components/schemas/ChatMessageContent"
+    ChatMessage:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - gameId
+        - role
+        - content
+        - createdAt
+      properties:
+        id:
+          $ref: "#/components/schemas/ChatMessageId"
+        gameId:
+          $ref: "#/components/schemas/GameId"
+        role:
+          $ref: "#/components/schemas/ChatMessageRole"
+        content:
+          $ref: "#/components/schemas/ChatMessageContent"
+        createdAt:
+          $ref: "#/components/schemas/ChatMessageCreatedAt"
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - error
+        - message
+        - path
+        - timestamp
+      properties:
+        status:
+          type: integer
+          description: HTTP status code.
+        error:
+          type: string
+          description: HTTP status reason phrase.
+        message:
+          type: string
+          description: Human-readable error message.
+        path:
+          type: string
+          description: Request path that caused the error.
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the error response was created.
