@@ -40,7 +40,7 @@ services:
     environment:
       # Overrides the application.yaml URL to point to the db container
       SPRING_CONFIG_IMPORT: optional:configtree:/run/secrets/
-      SPRING_DATASOURCE_URL: jdbc:postgresql://application-database:5432/${APP_DATABASE_NAME:-game_db}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://application-database:5432/${APP_DATABASE_NAME:-game_database}
       SPRING_DATASOURCE_USERNAME: ${APP_DATABASE_USER:-postgres}
     depends_on:
       application-database:
