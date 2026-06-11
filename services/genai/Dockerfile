@@ -27,7 +27,6 @@ ARG GIT_COMMIT=unknown
 
 ENV PATH="/app/.venv/bin:$PATH" \
   PYTHONUNBUFFERED=1 \
-  GENAI_PORT=8080
   APP_VERSION="${APP_VERSION}" \
   GIT_COMMIT="${GIT_COMMIT}"
 
@@ -51,4 +50,4 @@ USER app
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "exec uvicorn genai_service.main:app --host 0.0.0.0 --port ${GENAI_PORT:-8080}"]
+CMD ["sh", "-c", "exec uvicorn genai_service.main:app --host 0.0.0.0 --port 8080"]
