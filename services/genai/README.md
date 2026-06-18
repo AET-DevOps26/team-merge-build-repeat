@@ -26,6 +26,61 @@ Expected response:
 { "status": "UP" }
 ```
 
+## Chat answer endpoint
+
+```text
+POST /v1/chat/answer
+Authorization: Bearer <token>
+```
+
+Request body:
+
+```json
+{
+  "gameId": "00000000-0000-0000-0000-000000000000",
+  "board": [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0]
+  ],
+  "candidates": [
+    [[], [], [], [], [], [], [], [], []],
+    [[], [], [], [], [], [], [], [], []],
+    [[], [], [], [], [], [], [], [], []],
+    [[], [], [], [], [], [], [], [], []],
+    [[], [], [], [], [], [], [], [], []],
+    [[], [], [], [], [], [], [], [], []],
+    [[], [], [], [], [], [], [], [], []],
+    [[], [], [], [], [], [], [], [], []],
+    [[], [], [], [], [], [], [], [], []]
+  ],
+  "message": "What is the next step?"
+}
+```
+
+`board` must be a 9x9 integer grid using `0` for empty cells. `candidates`
+must be a 9x9 grid where each cell contains candidate integers. The service
+reads the existing chat from the chat database service, generates an assistant
+answer using the Sudoku MCP tools, then stores the user message and assistant
+response.
+
+Configuration:
+
+```text
+CHAT_SERVICE_URL=http://localhost:8081
+GENAI_MCP_COMMAND=python
+GENAI_MCP_ARGS="-m genai_service.mcp_server"
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=smollm2:135m
+```
+
 ## MCP server
 
 The Sudoku library is also exposed as a local MCP server for LangChain tools.

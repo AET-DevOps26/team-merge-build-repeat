@@ -109,6 +109,13 @@ def test_mcp_server_registers_and_calls_sudoku_tools() -> None:
 
         assert result[1] == {"placements": []}
 
+        next_step = await mcp.call_tool(
+            "find_next_step",
+            {"candidate_board": empty_candidate_board()},
+        )
+
+        assert next_step[1] == {"result": None}
+
     asyncio.run(run())
 
 
