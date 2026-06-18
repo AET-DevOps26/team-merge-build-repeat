@@ -53,6 +53,9 @@ jobs:
           - name: genai
             context: ./services/genai
             image: genai
+          - name: ollama
+            context: ./services/ollama
+            image: ollama
           - name: application
             context: ./services/application
             image: application

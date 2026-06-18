@@ -27,6 +27,14 @@ services:
       retries: 5
       start_period: 20s
 
+  ollama:
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-ollama:${IMAGE_TAG:-latest}
+    profiles: ["local-llm"]
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:e4b}
+
   application-database:
     image: postgres:17
     environment:
@@ -115,3 +123,4 @@ volumes:
   caddy_config:
   postgres_data:
   chat-database-postgres-data:
+  ollama-data:

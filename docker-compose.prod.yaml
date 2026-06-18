@@ -21,6 +21,10 @@ services:
     pull_policy: always
     restart: unless-stopped
 
+  ollama:
+    pull_policy: always
+    restart: unless-stopped
+
   application:
     pull_policy: always
     restart: unless-stopped
