@@ -21,6 +21,7 @@ services:
   genai:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-genai:${IMAGE_TAG:-latest}
     environment:
+      CHAT_SERVICE_URL: ${CHAT_SERVICE_URL:-http://chat:8080}
       LLM_PROVIDER: ${LLM_PROVIDER:-}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:e4b}

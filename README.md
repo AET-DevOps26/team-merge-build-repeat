@@ -30,6 +30,7 @@ The following secret files are expected:
 
 - `secrets/app_database_password`
 - `secrets/chat_database_password`
+- `secrets/logos_key` when `LLM_PROVIDER=openai` is used
 
 ## Run The Project
 
