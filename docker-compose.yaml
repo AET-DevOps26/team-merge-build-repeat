@@ -31,6 +31,10 @@ services:
     secrets:
       - source: logos_key
         target: logos_key
+    depends_on:
+      ollama:
+        condition: service_healthy
+        required: false
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health"]
       interval: 10s
@@ -45,6 +49,12 @@ services:
       - ollama-data:/root/.ollama
     environment:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:e4b}
+    healthcheck:
+      test: ["CMD-SHELL", 'ollama show "$$OLLAMA_MODEL" >/dev/null 2>&1']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
 
   application-database:
     image: postgres:17
