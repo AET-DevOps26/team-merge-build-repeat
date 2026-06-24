@@ -19,12 +19,17 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import team_merge_build_repeat.chat_database_service.security.GameAccessVerificationClient;
+import team_merge_build_repeat.chat_database_service.security.GameAccessVerificationResult;
+import team_merge_build_repeat.chat_database_service.security.GameVerificationUnavailableException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
 @SpringBootTest
 class ChatControllerIntegrationTests {
@@ -35,7 +40,7 @@ class ChatControllerIntegrationTests {
 
 	@BeforeEach
 	void setUp() {
-		mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+		mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
 	}
 
 	@TestConfiguration
@@ -59,6 +64,18 @@ class ChatControllerIntegrationTests {
 				public Instant instant() {
 					return Instant.parse("2026-01-01T00:00:00Z").plusMillis(counter.getAndIncrement());
 				}
+			};
+		}
+
+		@Bean
+		@Primary
+		GameAccessVerificationClient gameAccessVerificationClient() {
+			return (token, gameId) -> switch (token) {
+				case "test-token" -> GameAccessVerificationResult.ALLOWED;
+				case "forbidden-token" -> GameAccessVerificationResult.FORBIDDEN;
+				case "invalid-token" -> GameAccessVerificationResult.UNAUTHORIZED;
+				case "unavailable-token" -> throw new GameVerificationUnavailableException("unavailable", null);
+				default -> GameAccessVerificationResult.UNAUTHORIZED;
 			};
 		}
 	}
@@ -109,6 +126,48 @@ class ChatControllerIntegrationTests {
 				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.status").value(401))
 				.andExpect(jsonPath("$.error").value("Unauthorized"));
+	}
+
+	@Test
+	void getChatForForbiddenGameReturnsForbidden() throws Exception {
+		mockMvc.perform(get("/v1/chat/{gameId}", UUID.randomUUID())
+						.header("Authorization", "Bearer forbidden-token"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.status").value(403));
+	}
+
+	@Test
+	void forbiddenMessageCreationDoesNotStoreAMessage() throws Exception {
+		UUID gameId = UUID.randomUUID();
+
+		mockMvc.perform(post("/v1/chat/{gameId}/messages", gameId)
+						.header("Authorization", "Bearer forbidden-token")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"role":"user","content":"Should not be stored"}
+								"""))
+				.andExpect(status().isForbidden());
+
+		mockMvc.perform(get("/v1/chat/{gameId}", gameId)
+						.header("Authorization", "Bearer test-token"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.messages").isEmpty());
+	}
+
+	@Test
+	void getChatWithInvalidTokenReturnsUnauthorized() throws Exception {
+		mockMvc.perform(get("/v1/chat/{gameId}", UUID.randomUUID())
+						.header("Authorization", "Bearer invalid-token"))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.status").value(401));
+	}
+
+	@Test
+	void getChatWhenVerificationIsUnavailableReturnsServiceUnavailable() throws Exception {
+		mockMvc.perform(get("/v1/chat/{gameId}", UUID.randomUUID())
+						.header("Authorization", "Bearer unavailable-token"))
+				.andExpect(status().isServiceUnavailable())
+				.andExpect(jsonPath("$.status").value(503));
 	}
 
 	@Test
