@@ -10,3 +10,7 @@ def generate_sudoku():
         if i > 100:
             raise ValueError("Konnte kein eindeutiges Sudoku generieren.")
     return s.board
+
+def get_solution(board):
+    s = Sudoku(board=board)
+    return s.solve().board

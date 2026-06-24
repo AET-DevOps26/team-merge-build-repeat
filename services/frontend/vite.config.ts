@@ -10,4 +10,16 @@ export default defineConfig({
       '@': path.resolve(__dirname, '.'),
     },
   },
+  server: {
+    proxy: {
+      '/api/game-engine': {
+        target: 'http://localhost:8082',
+        rewrite: (path) => path.replace(/^\/api\/game-engine/, ''),
+      },
+      '/api/genai': {
+        target: 'http://localhost:8002',
+        rewrite: (path) => path.replace(/^\/api\/genai/, ''),
+      },
+    },
+  },
 })

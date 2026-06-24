@@ -2,10 +2,8 @@ import { Link, useLocation } from "react-router-dom"
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { href: "/", icon: "grid_view", label: "PLAY" },
-  { href: "/stats", icon: "leaderboard", label: "STATS" },
-  { href: "/ai", icon: "smart_toy", label: "AI" },
-  { href: "/rank", icon: "workspace_premium", label: "RANK" },
+  { href: "/", icon: "home", label: "HOME" },
+  { href: "/game", icon: "grid_view", label: "PLAY" },
 ]
 
 export function BottomNav() {
@@ -14,9 +12,8 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-3 bg-secondary border-t-4 border-destructive rounded-t-2xl shadow-[0_-4px_0px_0px_var(--color-accent)]">
       {navItems.map((item) => {
-        const isActive = pathname === item.href || 
-          (item.href === "/" && pathname === "/game")
-        
+        const isActive = pathname === item.href
+
         return (
           <Link
             key={item.href}
