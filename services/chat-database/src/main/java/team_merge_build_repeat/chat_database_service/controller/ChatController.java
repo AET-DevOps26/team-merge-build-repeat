@@ -2,6 +2,7 @@ package team_merge_build_repeat.chat_database_service.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,11 +27,13 @@ public class ChatController {
 	}
 
 	@GetMapping("/chat/{gameId}")
+	@PreAuthorize("@gameAccessAuthorizer.hasAccess(authentication, #p0)")
 	public ChatResponse getGameChat(@PathVariable UUID gameId) {
 		return chatService.getChat(gameId);
 	}
 
 	@PostMapping("/chat/{gameId}/messages")
+	@PreAuthorize("@gameAccessAuthorizer.hasAccess(authentication, #p0)")
 	public ResponseEntity<ChatMessageResponse> createGameChatMessage(
 			@PathVariable UUID gameId,
 			@Valid @RequestBody CreateChatMessageRequest request
