@@ -12,7 +12,7 @@ from langchain_core.messages import (
 )
 
 from genai_service.mcp_server import mcp
-from genai_service.schemas import ChatMessage, GenerateChatAnswerRequest
+from genai_service.schemas import ChatMessage, GenerateChatAnswerRequest, JsonBoard
 from genai_service.settings import Settings
 
 
@@ -25,6 +25,7 @@ class SudokuAssistant(Protocol):
         self,
         request: GenerateChatAnswerRequest,
         history: list[ChatMessage],
+        solution: JsonBoard,
     ) -> str:
         pass
 
@@ -45,18 +46,20 @@ class LangChainSudokuAssistant:
         self,
         request: GenerateChatAnswerRequest,
         history: list[ChatMessage],
+        solution: JsonBoard,
     ) -> str:
-        messages = self._build_messages(request, history)
+        messages = self._build_messages(request, history, solution)
 
         if self._chat_model is not None:
             return await self._answer_with_model(messages)
 
-        return await self._answer_with_mcp_fallback(request)
+        return await self._answer_with_mcp_fallback(request, solution)
 
     def _build_messages(
         self,
         request: GenerateChatAnswerRequest,
         history: list[ChatMessage],
+        solution: JsonBoard,
     ) -> list[BaseMessage]:
         messages: list[BaseMessage] = [
             SystemMessage(
@@ -76,6 +79,7 @@ class LangChainSudokuAssistant:
 
         state = {
             "board": request.board,
+            "solution": solution,
             "candidates": request.candidates,
             "question": request.message,
         }
@@ -155,11 +159,16 @@ class LangChainSudokuAssistant:
     async def _answer_with_mcp_fallback(
         self,
         request: GenerateChatAnswerRequest,
+        solution: JsonBoard,
     ) -> str:
         try:
             result = await mcp.call_tool(
                 "find_next_step",
-                {"candidate_board": request.candidates},
+                {
+                    "board": request.board,
+                    "solution": solution,
+                    "candidate_board": request.candidates,
+                },
             )
         except Exception as exc:
             raise AssistantError("Sudoku MCP tool call failed.") from exc
@@ -170,6 +179,27 @@ class LangChainSudokuAssistant:
                 "Ich finde mit den aktuellen Kandidaten keinen eindeutigen naechsten "
                 "Sudoku-Schritt. Pruefe bitte zuerst, ob Board und Kandidaten "
                 "vollstaendig und konsistent sind."
+            )
+
+        if deleted_cells := next_step.get("deleted_cells"):
+            row, col, value = deleted_cells[0]
+            return (
+                f"Der Eintrag {value} in Zeile {row + 1}, Spalte {col + 1} ist "
+                "nicht korrekt und muss entfernt werden."
+            )
+
+        if deleted_candidates := next_step.get("deleted_candidates"):
+            row, col, value = deleted_candidates[0]
+            return (
+                f"Die Kandidaten sind nicht konsistent: Kandidat {value} muss aus "
+                f"Zeile {row + 1}, Spalte {col + 1} entfernt werden."
+            )
+
+        if missing_candidates := next_step.get("missing_candidates"):
+            row, col, value = missing_candidates[0]
+            return (
+                f"Die Kandidaten sind nicht vollstaendig: Kandidat {value} fehlt in "
+                f"Zeile {row + 1}, Spalte {col + 1}."
             )
 
         strategy = next_step["strategy"]

@@ -79,7 +79,13 @@ GENAI_MCP_ARGS="-m genai_service.mcp_server"
 LLM_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=smollm2:135m
+GAME_SERVICE_URL=http://localhost:8080
 ```
+
+Before calculating a Sudoku strategy, the service retrieves the solved board
+from `GET /v1/games/{gameId}/solution` on `GAME_SERVICE_URL`. The endpoint must
+return `{ "gameId": "...", "solution": [[...]] }` and receives the caller's
+`Authorization` header.
 
 ## MCP server
 
@@ -110,6 +116,9 @@ tools = await client.get_tools()
 
 Boards are JSON 9x9 integer grids. Candidate boards are JSON 9x9 grids where
 each cell contains a list of candidate integers, for example `[1, 2, 3]`.
+Before a strategy runs, the MCP server validates the board against the solution,
+then validates candidates against both the board and the solution. Missing
+solution candidates are returned as `missing_candidates`.
 
 ## Test
 

@@ -10,6 +10,7 @@ PartialValidatedCandidateBoard = NewType("PartialValidatedCandidateBoard", Candi
 ValidatedCandidateBoard = NewType("ValidatedCandidateBoard", CandidateBoard)
 DeletedCell = Tuple[int, int, int]
 DeletedCandidate = Tuple[int, int, int]
+MissingCandidate = Tuple[int, int, int]
 
 
 def _validate_board_shape(board: Board) -> None:
@@ -105,21 +106,30 @@ def validate_board_against_solution(
 
 def validate_candidates_against_board(
     board: ValidatedBoard,
+    solution: SolutionBoard,
     candidate_board: CandidateBoard,
-) -> tuple[ValidatedCandidateBoard, list[DeletedCandidate]]:
+) -> tuple[
+    ValidatedCandidateBoard,
+    list[DeletedCandidate],
+    list[MissingCandidate],
+]:
     """
-    Remove trivially wrong candidates from a Sudoku candidate board.
+    Remove invalid candidates and report required candidates that are missing.
 
     A candidate is considered wrong if the value is already present in the
-    same row, column, or 3x3 box of the current board.
+    same row, column, or 3x3 box of the current board. A candidate is missing
+    when an empty cell does not contain its value from the solved board.
 
     The function mutates `candidate_board` in place and returns the updated
-    board plus a list of removed candidates as (row, col, value).
+    board plus removed and missing candidates as (row, col, value).
     """
 
+    _validate_board_shape(board)
+    _validate_board_shape(solution)
     _validate_candidate_board_shape(candidate_board)
 
     deleted_candidates: list[DeletedCandidate] = []
+    missing_candidates: list[MissingCandidate] = []
 
     _remove_candidates_from_set_cells(board, candidate_board)
 
@@ -127,24 +137,27 @@ def validate_candidates_against_board(
         for col in range(9):
             candidates = candidate_board[row][col]
 
-            if not candidates:
-                continue
-
             if board[row][col] != 0:
                 continue
 
-            forbidden_values = _collect_forbidden_values(board, row, col)
-            invalid_candidates = candidates.intersection(forbidden_values)
+            if candidates:
+                forbidden_values = _collect_forbidden_values(board, row, col)
+                invalid_candidates = candidates.intersection(forbidden_values)
 
-            if not invalid_candidates:
-                continue
+                for value in sorted(invalid_candidates):
+                    deleted_candidates.append((row, col, value))
 
-            for value in sorted(invalid_candidates):
-                deleted_candidates.append((row, col, value))
+                candidates.difference_update(invalid_candidates)
 
-            candidates.difference_update(invalid_candidates)
+            solution_value = solution[row][col]
+            if solution_value != 0 and solution_value not in candidates:
+                missing_candidates.append((row, col, solution_value))
 
-    return ValidatedCandidateBoard(candidate_board), deleted_candidates
+    return (
+        ValidatedCandidateBoard(candidate_board),
+        deleted_candidates,
+        missing_candidates,
+    )
 
 
 def _remove_candidates_from_set_cells(

@@ -61,8 +61,13 @@ def test_removes_candidates_present_in_row_column_and_box() -> None:
     candidate_board[1][0] = {2, 7, 9}
     candidate_board[4][4] = {7, 8, 9}
 
-    validated_candidates, deleted_candidates = validate_candidates_against_board(
+    (
+        validated_candidates,
+        deleted_candidates,
+        missing_candidates,
+    ) = validate_candidates_against_board(
         board,
+        empty_board(),
         candidate_board,
     )
 
@@ -71,6 +76,7 @@ def test_removes_candidates_present_in_row_column_and_box() -> None:
     assert candidate_board[0][1] == {1, 6}
     assert candidate_board[1][0] == {2}
     assert candidate_board[4][4] == {9}
+    assert missing_candidates == []
 
 
 def test_clears_candidates_for_fixed_cells() -> None:
@@ -80,9 +86,14 @@ def test_clears_candidates_for_fixed_cells() -> None:
     candidate_board = empty_candidate_board()
     candidate_board[2][2] = {1, 2, 3}
 
-    _, deleted_candidates = validate_candidates_against_board(board, candidate_board)
+    _, deleted_candidates, missing_candidates = validate_candidates_against_board(
+        board,
+        empty_board(),
+        candidate_board,
+    )
 
     assert deleted_candidates == []
+    assert missing_candidates == []
     assert candidate_board[2][2] == set()
 
 
@@ -93,16 +104,25 @@ def test_ignores_candidates_in_already_fixed_cells() -> None:
     candidate_board = empty_candidate_board()
     candidate_board[0][0] = {5, 6}
 
-    _, deleted_candidates = validate_candidates_against_board(board, candidate_board)
+    _, deleted_candidates, missing_candidates = validate_candidates_against_board(
+        board,
+        empty_board(),
+        candidate_board,
+    )
 
     assert deleted_candidates == []
+    assert missing_candidates == []
     assert candidate_board[0][0] == set()
 
 
 def test_rejects_invalid_candidate_board_shape() -> None:
     board = empty_board()
     with pytest.raises(ValueError):
-        validate_candidates_against_board(board, [[set()] * 9 for _ in range(8)])
+        validate_candidates_against_board(
+            board,
+            empty_board(),
+            [[set()] * 9 for _ in range(8)],
+        )
 
 
 def test_rejects_non_set_candidate_entries() -> None:
@@ -111,4 +131,21 @@ def test_rejects_non_set_candidate_entries() -> None:
     candidate_board[0][0] = [1, 2, 3]  # type: ignore[assignment]
 
     with pytest.raises(TypeError):
-        validate_candidates_against_board(board, candidate_board)
+        validate_candidates_against_board(board, empty_board(), candidate_board)
+
+
+def test_reports_solution_candidates_missing_from_empty_cells() -> None:
+    board = empty_board()
+    solution = empty_board()
+    solution[0][1] = 5
+    candidate_board = empty_candidate_board()
+    candidate_board[0][1] = {1, 2}
+
+    _, deleted_candidates, missing_candidates = validate_candidates_against_board(
+        board,
+        solution,
+        candidate_board,
+    )
+
+    assert deleted_candidates == []
+    assert missing_candidates == [(0, 1, 5)]

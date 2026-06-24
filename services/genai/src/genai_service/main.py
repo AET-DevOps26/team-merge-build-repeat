@@ -8,6 +8,7 @@ from langchain_ollama import ChatOllama
 from genai_service import __version__
 from genai_service.assistant import AssistantError, LangChainSudokuAssistant
 from genai_service.chat_client import ChatServiceClient, ChatServiceError
+from genai_service.game_client import GameServiceClient, GameServiceError
 from genai_service.openai_model import OpenAICompatibleChatModel
 from genai_service.schemas import GenerateChatAnswerRequest, GenerateChatAnswerResponse
 from genai_service.settings import load_settings
@@ -32,6 +33,7 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.chat_client = ChatServiceClient(settings.chat_service_url)
+        app.state.game_client = GameServiceClient(settings.game_service_url)
         app.state.assistant = LangChainSudokuAssistant(
             settings,
             chat_model=configured_chat_model,
@@ -40,6 +42,7 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
             yield
         finally:
             await app.state.chat_client.aclose()
+            await app.state.game_client.aclose()
 
     app = FastAPI(title="GenAI Service", version=__version__, lifespan=lifespan)
 
@@ -80,6 +83,7 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
             )
 
         chat_client = request.app.state.chat_client
+        game_client = request.app.state.game_client
         assistant = request.app.state.assistant
 
         try:
@@ -91,7 +95,19 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
             ) from exc
 
         try:
-            assistant_response = await assistant.answer(payload, chat.messages)
+            solution = await game_client.get_solution(payload.game_id, authorization)
+        except GameServiceError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=str(exc),
+            ) from exc
+
+        try:
+            assistant_response = await assistant.answer(
+                payload,
+                chat.messages,
+                solution,
+            )
         except AssistantError as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
