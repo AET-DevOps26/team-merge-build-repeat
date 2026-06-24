@@ -3,7 +3,13 @@ from __future__ import annotations
 import json
 from typing import Any, Protocol
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 
 from genai_service.mcp_server import mcp
 from genai_service.schemas import ChatMessage, GenerateChatAnswerRequest
@@ -24,6 +30,8 @@ class SudokuAssistant(Protocol):
 
 
 class LangChainSudokuAssistant:
+    _MAX_TOOL_ROUNDS = 6
+
     def __init__(
         self,
         settings: Settings,
@@ -60,7 +68,7 @@ class LangChainSudokuAssistant:
             )
         ]
 
-        for message in history:
+        for message in history[-10:]:
             if message.role == "assistant":
                 messages.append(AIMessage(content=message.content))
             else:
@@ -85,12 +93,43 @@ class LangChainSudokuAssistant:
         try:
             tools = await self._load_mcp_tools()
             model = self._chat_model
+            if model is None:
+                raise AssistantError("No model provided")
             if tools and hasattr(model, "bind_tools"):
                 model = model.bind_tools(tools)
-            response = await model.ainvoke(messages)
+
+            tools_by_name = {tool.name: tool for tool in tools}
+            for _ in range(self._MAX_TOOL_ROUNDS):
+                response = await model.ainvoke(messages)
+                tool_calls = getattr(response, "tool_calls", [])
+                if not tool_calls:
+                    return self._response_content(response)
+
+                messages.append(response)
+                for tool_call in tool_calls:
+                    tool_name = tool_call["name"]
+                    tool = tools_by_name.get(tool_name)
+                    if tool is None:
+                        raise AssistantError(
+                            f"Model requested unknown Sudoku tool: {tool_name}."
+                        )
+
+                    result = await tool.ainvoke(tool_call["args"])
+                    messages.append(
+                        ToolMessage(
+                            content=json.dumps(result, default=str),
+                            tool_call_id=tool_call["id"],
+                        )
+                    )
         except Exception as exc:
+            if isinstance(exc, AssistantError):
+                raise
             raise AssistantError("Assistant orchestration failed.") from exc
 
+        raise AssistantError("Assistant reached the maximum number of tool rounds.")
+
+    @staticmethod
+    def _response_content(response: Any) -> str:
         content = getattr(response, "content", response)
         if isinstance(content, list):
             return " ".join(str(item) for item in content).strip()

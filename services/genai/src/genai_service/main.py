@@ -3,11 +3,11 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, Header, HTTPException, Request, status
+from langchain_ollama import ChatOllama
 
 from genai_service import __version__
 from genai_service.assistant import AssistantError, LangChainSudokuAssistant
 from genai_service.chat_client import ChatServiceClient, ChatServiceError
-from genai_service.ollama_model import OllamaChatModel
 from genai_service.openai_model import OpenAICompatibleChatModel
 from genai_service.schemas import GenerateChatAnswerRequest, GenerateChatAnswerResponse
 from genai_service.settings import load_settings
@@ -17,9 +17,10 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
     settings = load_settings()
     configured_chat_model = chat_model
     if configured_chat_model is None and settings.llm_provider == "ollama":
-        configured_chat_model = OllamaChatModel(
-            settings.ollama_base_url,
-            settings.ollama_model,
+        configured_chat_model = ChatOllama(
+            base_url=settings.ollama_base_url,
+            model=settings.ollama_model,
+            temperature=0,
         )
     if configured_chat_model is None and settings.llm_provider == "openai":
         configured_chat_model = OpenAICompatibleChatModel(
