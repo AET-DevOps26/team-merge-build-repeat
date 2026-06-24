@@ -43,5 +43,5 @@ def load_settings() -> Settings:
         ollama_model=os.getenv("OLLAMA_MODEL", "smollm2:135m"),
         openai_base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
         openai_api_key=_read_secret("OPENAI_API_KEY"),
-        openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+        openai_model=os.getenv("OPENAI_MODEL", "openai/gpt-oss-120b"),
     )
