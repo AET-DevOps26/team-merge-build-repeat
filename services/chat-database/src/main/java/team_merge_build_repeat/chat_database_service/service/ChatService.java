@@ -15,18 +15,15 @@ import java.util.UUID;
 @Service
 public class ChatService {
 	private final ChatMessageRepository repository;
-	private final ChatAuthorizationService authorizationService;
 	private final Clock clock;
 
-	public ChatService(ChatMessageRepository repository, ChatAuthorizationService authorizationService, Clock clock) {
+	public ChatService(ChatMessageRepository repository, Clock clock) {
 		this.repository = repository;
-		this.authorizationService = authorizationService;
 		this.clock = clock;
 	}
 
 	@Transactional(readOnly = true)
 	public ChatResponse getChat(UUID gameId) {
-		authorizationService.ensureReadable(gameId);
 		List<ChatMessageResponse> messages = repository.findByGameId(gameId).stream()
 				.map(this::toResponse)
 				.toList();
@@ -35,8 +32,6 @@ public class ChatService {
 
 	@Transactional
 	public ChatMessageResponse createMessage(UUID gameId, CreateChatMessageRequest request) {
-		authorizationService.ensureWritable(gameId);
-
 		ChatMessageEntity entity = new ChatMessageEntity(
 				UUID.randomUUID(),
 				gameId,
