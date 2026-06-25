@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import team_merge_build_repeat.chat_database_service.dto.ErrorResponse;
+import team_merge_build_repeat.chat_database_service.security.GameVerificationUnavailableException;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -35,6 +36,11 @@ public class ApiExceptionHandler {
 	@ExceptionHandler(ForbiddenException.class)
 	public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException exception, HttpServletRequest request) {
 		return build(HttpStatus.FORBIDDEN, exception.getMessage(), request);
+	}
+
+	@ExceptionHandler(GameVerificationUnavailableException.class)
+	public ResponseEntity<ErrorResponse> handleVerificationUnavailable(GameVerificationUnavailableException exception, HttpServletRequest request) {
+		return build(HttpStatus.SERVICE_UNAVAILABLE, "Game access verification is temporarily unavailable.", request);
 	}
 
 	@ExceptionHandler({
