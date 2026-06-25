@@ -24,6 +24,8 @@ services:
     volumes:
       - ./services/frontend:/app
       - /app/node_modules
+    environment:
+      - DOCKER_ENV=true
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:5173/" ]
       interval: 10s

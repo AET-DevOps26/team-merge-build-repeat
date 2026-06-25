@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
+const isDocker = process.env.DOCKER_ENV === 'true'
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -13,11 +15,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/api/game-engine': {
-        target: 'http://localhost:8082',
+        target: isDocker ? 'http://game-engine:8080' : 'http://localhost:8082',
         rewrite: (path) => path.replace(/^\/api\/game-engine/, ''),
       },
       '/api/genai': {
-        target: 'http://localhost:8002',
+        target: isDocker ? 'http://genai:8080' : 'http://localhost:8002',
         rewrite: (path) => path.replace(/^\/api\/genai/, ''),
       },
     },
