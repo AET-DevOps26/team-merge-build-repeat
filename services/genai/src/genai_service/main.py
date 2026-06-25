@@ -3,43 +3,34 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, Header, HTTPException, Request, status
-from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI
 
 from genai_service import __version__
 from genai_service.assistant import AssistantError, LangChainSudokuAssistant
 from genai_service.chat_client import ChatServiceClient, ChatServiceError
-from genai_service.game_client import GameServiceClient, GameServiceError
+from genai_service.ollama_model import OllamaChatModel
+from genai_service.openai_model import OpenAICompatibleChatModel
 from genai_service.schemas import GenerateChatAnswerRequest, GenerateChatAnswerResponse
-from genai_service.settings import Settings, load_settings
-
-
-def _configure_chat_model(settings: Settings, chat_model: Any | None) -> Any | None:
-    configured_chat_model = chat_model
-    if configured_chat_model is None and settings.llm_provider == "ollama":
-        configured_chat_model = ChatOllama(
-            base_url=settings.ollama_base_url,
-            model=settings.ollama_model,
-            temperature=0,
-        )
-    if configured_chat_model is None and settings.llm_provider == "openai":
-        configured_chat_model = ChatOpenAI(
-            base_url=settings.openai_base_url,
-            api_key=settings.openai_api_key,
-            model=settings.openai_model,
-            temperature=0,
-        )
-    return configured_chat_model
+from genai_service.settings import load_settings
 
 
 def create_app(*, chat_model: Any | None = None) -> FastAPI:
     settings = load_settings()
-    configured_chat_model = _configure_chat_model(settings, chat_model)
+    configured_chat_model = chat_model
+    if configured_chat_model is None and settings.llm_provider == "ollama":
+        configured_chat_model = OllamaChatModel(
+            settings.ollama_base_url,
+            settings.ollama_model,
+        )
+    if configured_chat_model is None and settings.llm_provider == "openai":
+        configured_chat_model = OpenAICompatibleChatModel(
+            settings.openai_base_url,
+            settings.openai_api_key,
+            settings.openai_model,
+        )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.chat_client = ChatServiceClient(settings.chat_service_url)
-        app.state.game_client = GameServiceClient(settings.game_service_url)
         app.state.assistant = LangChainSudokuAssistant(
             settings,
             chat_model=configured_chat_model,
@@ -48,7 +39,6 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
             yield
         finally:
             await app.state.chat_client.aclose()
-            await app.state.game_client.aclose()
 
     app = FastAPI(title="GenAI Service", version=__version__, lifespan=lifespan)
 
@@ -89,7 +79,6 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
             )
 
         chat_client = request.app.state.chat_client
-        game_client = request.app.state.game_client
         assistant = request.app.state.assistant
 
         try:
@@ -101,19 +90,7 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
             ) from exc
 
         try:
-            solution = await game_client.get_solution(payload.game_id, authorization)
-        except GameServiceError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=str(exc),
-            ) from exc
-
-        try:
-            assistant_response = await assistant.answer(
-                payload,
-                chat.messages,
-                solution,
-            )
+            assistant_response = await assistant.answer(payload, chat.messages)
         except AssistantError as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

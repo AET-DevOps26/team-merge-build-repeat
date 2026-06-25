@@ -3,16 +3,10 @@ from __future__ import annotations
 import json
 from typing import Any, Protocol
 
-from langchain_core.messages import (
-    AIMessage,
-    BaseMessage,
-    HumanMessage,
-    SystemMessage,
-    ToolMessage,
-)
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from genai_service.mcp_server import mcp
-from genai_service.schemas import ChatMessage, GenerateChatAnswerRequest, JsonBoard
+from genai_service.schemas import ChatMessage, GenerateChatAnswerRequest
 from genai_service.settings import Settings
 
 
@@ -25,14 +19,11 @@ class SudokuAssistant(Protocol):
         self,
         request: GenerateChatAnswerRequest,
         history: list[ChatMessage],
-        solution: JsonBoard,
     ) -> str:
         pass
 
 
 class LangChainSudokuAssistant:
-    _MAX_TOOL_ROUNDS = 6
-
     def __init__(
         self,
         settings: Settings,
@@ -46,20 +37,18 @@ class LangChainSudokuAssistant:
         self,
         request: GenerateChatAnswerRequest,
         history: list[ChatMessage],
-        solution: JsonBoard,
     ) -> str:
-        messages = self._build_messages(request, history, solution)
+        messages = self._build_messages(request, history)
 
         if self._chat_model is not None:
             return await self._answer_with_model(messages)
 
-        return await self._answer_with_mcp_fallback(request, solution)
+        return await self._answer_with_mcp_fallback(request)
 
     def _build_messages(
         self,
         request: GenerateChatAnswerRequest,
         history: list[ChatMessage],
-        solution: JsonBoard,
     ) -> list[BaseMessage]:
         messages: list[BaseMessage] = [
             SystemMessage(
@@ -71,7 +60,7 @@ class LangChainSudokuAssistant:
             )
         ]
 
-        for message in history[-10:]:
+        for message in history:
             if message.role == "assistant":
                 messages.append(AIMessage(content=message.content))
             else:
@@ -79,7 +68,6 @@ class LangChainSudokuAssistant:
 
         state = {
             "board": request.board,
-            "solution": solution,
             "candidates": request.candidates,
             "question": request.message,
         }
@@ -97,43 +85,12 @@ class LangChainSudokuAssistant:
         try:
             tools = await self._load_mcp_tools()
             model = self._chat_model
-            if model is None:
-                raise AssistantError("No model provided")
             if tools and hasattr(model, "bind_tools"):
                 model = model.bind_tools(tools)
-
-            tools_by_name = {tool.name: tool for tool in tools}
-            for _ in range(self._MAX_TOOL_ROUNDS):
-                response = await model.ainvoke(messages)
-                tool_calls = getattr(response, "tool_calls", [])
-                if not tool_calls:
-                    return self._response_content(response)
-
-                messages.append(response)
-                for tool_call in tool_calls:
-                    tool_name = tool_call["name"]
-                    tool = tools_by_name.get(tool_name)
-                    if tool is None:
-                        raise AssistantError(
-                            f"Model requested unknown Sudoku tool: {tool_name}."
-                        )
-
-                    result = await tool.ainvoke(tool_call["args"])
-                    messages.append(
-                        ToolMessage(
-                            content=json.dumps(result, default=str),
-                            tool_call_id=tool_call["id"],
-                        )
-                    )
+            response = await model.ainvoke(messages)
         except Exception as exc:
-            if isinstance(exc, AssistantError):
-                raise
             raise AssistantError("Assistant orchestration failed.") from exc
 
-        raise AssistantError("Assistant reached the maximum number of tool rounds.")
-
-    @staticmethod
-    def _response_content(response: Any) -> str:
         content = getattr(response, "content", response)
         if isinstance(content, list):
             return " ".join(str(item) for item in content).strip()
@@ -159,16 +116,11 @@ class LangChainSudokuAssistant:
     async def _answer_with_mcp_fallback(
         self,
         request: GenerateChatAnswerRequest,
-        solution: JsonBoard,
     ) -> str:
         try:
             result = await mcp.call_tool(
                 "find_next_step",
-                {
-                    "board": request.board,
-                    "solution": solution,
-                    "candidate_board": request.candidates,
-                },
+                {"candidate_board": request.candidates},
             )
         except Exception as exc:
             raise AssistantError("Sudoku MCP tool call failed.") from exc
@@ -179,27 +131,6 @@ class LangChainSudokuAssistant:
                 "Ich finde mit den aktuellen Kandidaten keinen eindeutigen naechsten "
                 "Sudoku-Schritt. Pruefe bitte zuerst, ob Board und Kandidaten "
                 "vollstaendig und konsistent sind."
-            )
-
-        if deleted_cells := next_step.get("deleted_cells"):
-            row, col, value = deleted_cells[0]
-            return (
-                f"Der Eintrag {value} in Zeile {row + 1}, Spalte {col + 1} ist "
-                "nicht korrekt und muss entfernt werden."
-            )
-
-        if deleted_candidates := next_step.get("deleted_candidates"):
-            row, col, value = deleted_candidates[0]
-            return (
-                f"Die Kandidaten sind nicht konsistent: Kandidat {value} muss aus "
-                f"Zeile {row + 1}, Spalte {col + 1} entfernt werden."
-            )
-
-        if missing_candidates := next_step.get("missing_candidates"):
-            row, col, value = missing_candidates[0]
-            return (
-                f"Die Kandidaten sind nicht vollstaendig: Kandidat {value} fehlt in "
-                f"Zeile {row + 1}, Spalte {col + 1}."
             )
 
         strategy = next_step["strategy"]

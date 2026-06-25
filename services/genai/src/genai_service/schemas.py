@@ -52,22 +52,6 @@ class GenerateChatAnswerRequest(BaseModel):
         return candidates
 
 
-class GameSolutionResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    game_id: UUID = Field(alias="gameId")
-    solution: JsonBoard
-
-    @field_validator("solution")
-    @classmethod
-    def validate_solution(cls, solution: JsonBoard) -> JsonBoard:
-        _validate_grid_shape(solution, "solution")
-        for row in solution:
-            for value in row:
-                if value < 0 or value > 9:
-                    raise ValueError("solution values must be between 0 and 9.")
-        return solution
-
 class GenerateChatAnswerResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 

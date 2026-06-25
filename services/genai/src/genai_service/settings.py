@@ -19,7 +19,6 @@ def _read_secret(name: str) -> str:
 @dataclass(frozen=True)
 class Settings:
     chat_service_url: str
-    game_service_url: str
     mcp_command: str
     mcp_args: list[str]
     llm_provider: str
@@ -33,7 +32,6 @@ class Settings:
 def load_settings() -> Settings:
     return Settings(
         chat_service_url=os.getenv("CHAT_SERVICE_URL", "http://localhost:8081"),
-        game_service_url=os.getenv("GAME_SERVICE_URL", "http://localhost:8080"),
         mcp_command=os.getenv("GENAI_MCP_COMMAND", sys.executable),
         mcp_args=shlex.split(
             os.getenv("GENAI_MCP_ARGS", "-m genai_service.mcp_server")
@@ -43,5 +41,5 @@ def load_settings() -> Settings:
         ollama_model=os.getenv("OLLAMA_MODEL", "smollm2:135m"),
         openai_base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
         openai_api_key=_read_secret("OPENAI_API_KEY"),
-        openai_model=os.getenv("OPENAI_MODEL", "openai/gpt-oss-120b"),
+        openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
     )
