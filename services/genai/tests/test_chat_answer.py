@@ -18,6 +18,15 @@ def empty_candidates() -> list[list[list[int]]]:
     return [[[] for _ in range(9)] for _ in range(9)]
 
 
+class FakeGameClient:
+    async def get_solution(
+        self,
+        game_id: UUID,
+        authorization: str,
+    ) -> list[list[int]]:
+        return empty_board()
+
+
 class FakeChatClient:
     def __init__(self) -> None:
         self.created_messages: list[tuple[UUID, str, str, str]] = []
@@ -62,6 +71,7 @@ class FakeAssistant:
         self,
         request: GenerateChatAnswerRequest,
         history: list,
+        solution: list[list[int]],
     ) -> str:
         self.history_size = len(history)
         return self.response
@@ -72,6 +82,7 @@ class FailingAssistant:
         self,
         request: GenerateChatAnswerRequest,
         history: list,
+        solution: list[list[int]],
     ) -> str:
         raise AssistantError("Assistant orchestration failed.")
 
@@ -83,6 +94,7 @@ def test_answer_chat_uses_history_and_stores_user_and_assistant_messages() -> No
         chat_client = FakeChatClient()
         assistant = FakeAssistant()
         app.state.chat_client = chat_client
+        app.state.game_client = FakeGameClient()
         app.state.assistant = assistant
         transport = httpx.ASGITransport(app=app)
 
@@ -155,6 +167,7 @@ def test_answer_chat_does_not_store_messages_when_assistant_fails() -> None:
         app = create_app()
         chat_client = FakeChatClient()
         app.state.chat_client = chat_client
+        app.state.game_client = FakeGameClient()
         app.state.assistant = FailingAssistant()
         transport = httpx.ASGITransport(app=app)
 

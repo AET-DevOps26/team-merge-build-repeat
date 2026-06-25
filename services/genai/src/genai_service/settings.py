@@ -19,6 +19,7 @@ def _read_secret(name: str) -> str:
 @dataclass(frozen=True)
 class Settings:
     chat_service_url: str
+    game_service_url: str
     mcp_command: str
     mcp_args: list[str]
     llm_provider: str
@@ -32,6 +33,7 @@ class Settings:
 def load_settings() -> Settings:
     return Settings(
         chat_service_url=os.getenv("CHAT_SERVICE_URL", "http://localhost:8081"),
+        game_service_url=os.getenv("GAME_SERVICE_URL", "http://localhost:8080"),
         mcp_command=os.getenv("GENAI_MCP_COMMAND", sys.executable),
         mcp_args=shlex.split(
             os.getenv("GENAI_MCP_ARGS", "-m genai_service.mcp_server")

@@ -159,6 +159,7 @@ def validate_candidates_against_board(
         missing_candidates,
     )
 
+
 def _remove_candidates_from_set_cells(
     board: ValidatedBoard,
     candidate_board: CandidateBoard,

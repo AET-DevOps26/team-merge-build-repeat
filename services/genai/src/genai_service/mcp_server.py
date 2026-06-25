@@ -97,11 +97,21 @@ def _run_with_input_errors(callback: Callable[[], JsonObject]) -> JsonObject:
 
 
 def _run_single_strategy(
+    board: JsonBoard,
+    solution: JsonBoard,
     candidate_board: JsonCandidateBoard,
     finder: SingleStrategyFinder,
 ) -> JsonObject:
     def run() -> JsonObject:
-        candidates = _candidate_board_from_json(candidate_board)
+        candidates, validation_result = _validate_finder_input(
+            board,
+            solution,
+            candidate_board,
+        )
+        if validation_result is not None:
+            return validation_result
+
+        assert candidates is not None
         placements = finder(candidates)
         return {"placements": _jsonify(placements)}
 
@@ -109,11 +119,21 @@ def _run_single_strategy(
 
 
 def _run_removal_strategy(
+    board: JsonBoard,
+    solution: JsonBoard,
     candidate_board: JsonCandidateBoard,
     finder: RemovalStrategyFinder,
 ) -> JsonObject:
     def run() -> JsonObject:
-        candidates = _candidate_board_from_json(candidate_board)
+        candidates, validation_result = _validate_finder_input(
+            board,
+            solution,
+            candidate_board,
+        )
+        if validation_result is not None:
+            return validation_result
+
+        assert candidates is not None
         removals, reasons = finder(candidates)
         return {
             "removals": _jsonify(removals),
@@ -121,6 +141,44 @@ def _run_removal_strategy(
         }
 
     return _run_with_input_errors(run)
+
+
+def _validate_finder_input(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> tuple[ValidatedCandidateBoard | None, JsonObject | None]:
+    """Validate board first, then candidates, before a strategy runs."""
+    validated_board, deleted_cells = sudoku_validate_board_against_solution(
+        _copy_board(board),
+        _copy_board(solution),
+    )
+    if deleted_cells:
+        return None, {
+            "board": validated_board,
+            "deleted_cells": _jsonify(deleted_cells),
+        }
+
+    (
+        validated_candidates,
+        deleted_candidates,
+        missing_candidates,
+    ) = sudoku_validate_candidates_against_board(
+        validated_board,
+        _copy_board(solution),
+        _candidate_board_from_json(candidate_board),
+    )
+    if not deleted_candidates and not missing_candidates:
+        return validated_candidates, None
+
+    validation_result: JsonObject = {
+        "candidate_board": _candidate_board_to_json(validated_candidates),
+    }
+    if deleted_candidates:
+        validation_result["deleted_candidates"] = _jsonify(deleted_candidates)
+    if missing_candidates:
+        validation_result["missing_candidates"] = _jsonify(missing_candidates)
+    return validated_candidates, validation_result
 
 
 def _serialize_strategy_result(result: Any) -> JsonObject:
@@ -159,31 +217,50 @@ def validate_board_against_solution(
 @mcp.tool()
 def validate_candidates_against_board(
     board: JsonBoard,
+    solution: JsonBoard,
     candidate_board: JsonCandidateBoard,
 ) -> JsonObject:
-    """Remove candidates that are impossible for the current Sudoku board."""
+    """Remove invalid candidates and report candidates required by the solution."""
 
     def run() -> JsonObject:
         board_copy = _copy_board(board)
         candidates = _candidate_board_from_json(candidate_board)
-        validated_candidates, deleted_candidates = sudoku_validate_candidates_against_board(
+        (
+            validated_candidates,
+            deleted_candidates,
+            missing_candidates,
+        ) = sudoku_validate_candidates_against_board(
             board_copy,
+            _copy_board(solution),
             candidates,
         )
         return {
             "candidate_board": _candidate_board_to_json(validated_candidates),
             "deleted_candidates": _jsonify(deleted_candidates),
+            "missing_candidates": _jsonify(missing_candidates),
         }
 
     return _run_with_input_errors(run)
 
 
 @mcp.tool()
-def find_next_step(candidate_board: JsonCandidateBoard) -> JsonObject | None:
+def find_next_step(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject | None:
     """Return the first applicable Sudoku strategy result from easy to hard."""
 
     def run() -> JsonObject | None:
-        candidates = _candidate_board_from_json(candidate_board)
+        candidates, validation_result = _validate_finder_input(
+            board,
+            solution,
+            candidate_board,
+        )
+        if validation_result is not None:
+            return validation_result
+
+        assert candidates is not None
         next_step = sudoku_find_next_step(candidates)
 
         if next_step is None:
@@ -199,94 +276,211 @@ def find_next_step(candidate_board: JsonCandidateBoard) -> JsonObject | None:
 
 
 @mcp.tool()
-def find_single_candidates(candidate_board: JsonCandidateBoard) -> JsonObject:
+def find_single_candidates(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject:
     """Find cells with exactly one remaining candidate."""
 
-    return _run_single_strategy(candidate_board, sudoku_find_single_candidates)
+    return _run_single_strategy(
+        board,
+        solution,
+        candidate_board,
+        sudoku_find_single_candidates,
+    )
 
 
 @mcp.tool()
-def find_single_positions(candidate_board: JsonCandidateBoard) -> JsonObject:
+def find_single_positions(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject:
     """Find candidates with only one possible position in a unit."""
 
-    return _run_single_strategy(candidate_board, sudoku_find_single_positions)
+    return _run_single_strategy(
+        board,
+        solution,
+        candidate_board,
+        sudoku_find_single_positions,
+    )
 
 
 @mcp.tool()
-def find_candidate_lines(candidate_board: JsonCandidateBoard) -> JsonObject:
+def find_candidate_lines(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject:
     """Find removals using the candidate lines strategy."""
 
-    return _run_removal_strategy(candidate_board, sudoku_find_candidate_lines)
+    return _run_removal_strategy(
+        board,
+        solution,
+        candidate_board,
+        sudoku_find_candidate_lines,
+    )
 
 
 @mcp.tool()
-def find_double_pairs(candidate_board: JsonCandidateBoard) -> JsonObject:
+def find_double_pairs(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject:
     """Find removals using the double pairs strategy."""
 
-    return _run_removal_strategy(candidate_board, sudoku_find_double_pairs)
+    return _run_removal_strategy(
+        board,
+        solution,
+        candidate_board,
+        sudoku_find_double_pairs,
+    )
 
 
 @mcp.tool()
-def find_multiple_lines(candidate_board: JsonCandidateBoard) -> JsonObject:
+def find_multiple_lines(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject:
     """Find removals using the multiple lines strategy."""
 
-    return _run_removal_strategy(candidate_board, sudoku_find_multiple_lines)
+    return _run_removal_strategy(
+        board,
+        solution,
+        candidate_board,
+        sudoku_find_multiple_lines,
+    )
 
 
 @mcp.tool()
-def find_naked_pairs(candidate_board: JsonCandidateBoard) -> JsonObject:
+def find_naked_pairs(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject:
     """Find removals using the naked pairs strategy."""
 
-    return _run_removal_strategy(candidate_board, sudoku_find_naked_pairs)
+    return _run_removal_strategy(
+        board,
+        solution,
+        candidate_board,
+        sudoku_find_naked_pairs,
+    )
 
 
 @mcp.tool()
-def find_naked_triples(candidate_board: JsonCandidateBoard) -> JsonObject:
+def find_naked_triples(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject:
     """Find removals using the naked triples strategy."""
 
-    return _run_removal_strategy(candidate_board, sudoku_find_naked_triples)
+    return _run_removal_strategy(
+        board,
+        solution,
+        candidate_board,
+        sudoku_find_naked_triples,
+    )
 
 
 @mcp.tool()
-def find_naked_quads(candidate_board: JsonCandidateBoard) -> JsonObject:
+def find_naked_quads(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject:
     """Find removals using the naked quads strategy."""
 
-    return _run_removal_strategy(candidate_board, sudoku_find_naked_quads)
+    return _run_removal_strategy(
+        board,
+        solution,
+        candidate_board,
+        sudoku_find_naked_quads,
+    )
 
 
 @mcp.tool()
-def find_hidden_pairs(candidate_board: JsonCandidateBoard) -> JsonObject:
+def find_hidden_pairs(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject:
     """Find removals using the hidden pairs strategy."""
 
-    return _run_removal_strategy(candidate_board, sudoku_find_hidden_pairs)
+    return _run_removal_strategy(
+        board,
+        solution,
+        candidate_board,
+        sudoku_find_hidden_pairs,
+    )
 
 
 @mcp.tool()
-def find_hidden_triples(candidate_board: JsonCandidateBoard) -> JsonObject:
+def find_hidden_triples(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject:
     """Find removals using the hidden triples strategy."""
 
-    return _run_removal_strategy(candidate_board, sudoku_find_hidden_triples)
+    return _run_removal_strategy(
+        board,
+        solution,
+        candidate_board,
+        sudoku_find_hidden_triples,
+    )
 
 
 @mcp.tool()
-def find_hidden_quads(candidate_board: JsonCandidateBoard) -> JsonObject:
+def find_hidden_quads(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject:
     """Find removals using the hidden quads strategy."""
 
-    return _run_removal_strategy(candidate_board, sudoku_find_hidden_quads)
+    return _run_removal_strategy(
+        board,
+        solution,
+        candidate_board,
+        sudoku_find_hidden_quads,
+    )
 
 
 @mcp.tool()
-def find_x_wings(candidate_board: JsonCandidateBoard) -> JsonObject:
+def find_x_wings(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject:
     """Find removals using the X-Wing strategy."""
 
-    return _run_removal_strategy(candidate_board, sudoku_find_x_wings)
+    return _run_removal_strategy(
+        board,
+        solution,
+        candidate_board,
+        sudoku_find_x_wings,
+    )
 
 
 @mcp.tool()
-def find_swordfish(candidate_board: JsonCandidateBoard) -> JsonObject:
+def find_swordfish(
+    board: JsonBoard,
+    solution: JsonBoard,
+    candidate_board: JsonCandidateBoard,
+) -> JsonObject:
     """Find removals using the swordfish strategy."""
 
-    return _run_removal_strategy(candidate_board, sudoku_find_swordfish)
+    return _run_removal_strategy(
+        board,
+        solution,
+        candidate_board,
+        sudoku_find_swordfish,
+    )
 
 
 if __name__ == "__main__":
