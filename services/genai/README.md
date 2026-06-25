@@ -118,7 +118,7 @@ Boards are JSON 9x9 integer grids. Candidate boards are JSON 9x9 grids where
 each cell contains a list of candidate integers, for example `[1, 2, 3]`.
 Before a strategy runs, the MCP server validates the board against the solution,
 then validates candidates against both the board and the solution. Missing
-solution candidates are returned as `missing_candidates`.
+solution candidates are returned as `missing_candidates`
 
 ## Test
 
