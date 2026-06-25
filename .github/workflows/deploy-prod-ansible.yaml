@@ -1,0 +1,127 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag to deploy, for example v1.2.3 or 1.2.3.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  TF_WORKING_DIR: terraform
+  TF_STATE_KEY: prod/docker-host.tfstate
+  ARM_USE_OIDC: "true"
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  TF_VAR_subscription_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  TF_VAR_ssh_public_key: ${{ vars.TF_VAR_ssh_public_key }}
+  TF_VAR_ssh_source_address_prefix: ${{ vars.TF_VAR_ssh_source_address_prefix }}
+  DOMAIN: ${{ vars.DOMAIN }}
+  APP_DATABASE_NAME: ${{ vars.APP_DATABASE_NAME }}
+  APP_DATABASE_USER: ${{ vars.APP_DATABASE_USER }}
+  CHAT_DATABASE_NAME: ${{ vars.CHAT_DATABASE_NAME }}
+  CHAT_DATABASE_USER: ${{ vars.CHAT_DATABASE_USER }}
+  CHAT_DATABASE_SPRING_PROFILE: ${{ vars.CHAT_DATABASE_SPRING_PROFILE }}
+  APP_DATABASE_PASSWORD: ${{ secrets.APP_DATABASE_PASSWORD }}
+  CHAT_DATABASE_PASSWORD: ${{ secrets.CHAT_DATABASE_PASSWORD }}
+  ANSIBLE_HOST_KEY_CHECKING: "false"
+
+jobs:
+  deploy:
+    name: Deploy Docker Compose stack
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    environment: production
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Normalize image tag
+        id: image_tag
+        shell: bash
+        env:
+          RAW_IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          raw_tag="$RAW_IMAGE_TAG"
+          normalized_tag="${raw_tag#v}"
+
+          if ! printf '%s' "$normalized_tag" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "image_tag must be SemVer, for example v1.2.3, 1.2.3, v1.2.3-rc.1, or 1.2.3-rc.1" >&2
+            exit 1
+          fi
+
+          echo "IMAGE_TAG=$normalized_tag" >> "$GITHUB_ENV"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ vars.TF_STATE_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ vars.TF_STATE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ vars.TF_STATE_CONTAINER }}" \
+            -backend-config="key=${{ env.TF_STATE_KEY }}" \
+            -backend-config="use_oidc=true" \
+            -backend-config="use_azuread_auth=true"
+
+      - name: Read Terraform output
+        id: terraform_output
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        shell: bash
+        run: |
+          public_ip="$(terraform output -raw public_ip_address)"
+          admin_username="$(terraform output -raw admin_username)"
+          if [ -z "$public_ip" ]; then
+            echo "Terraform output public_ip_address is empty." >&2
+            exit 1
+          fi
+          if [ -z "$admin_username" ]; then
+            echo "Terraform output admin_username is empty." >&2
+            exit 1
+          fi
+          echo "public_ip=$public_ip" >> "$GITHUB_OUTPUT"
+          echo "admin_username=$admin_username" >> "$GITHUB_OUTPUT"
+
+      - name: Install Ansible
+        run: |
+          python3 -m pip install --user ansible-core
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Configure SSH key
+        shell: bash
+        env:
+          ANSIBLE_SSH_PRIVATE_KEY: ${{ secrets.ANSIBLE_SSH_PRIVATE_KEY }}
+        run: |
+          install -m 0700 -d ~/.ssh
+          printf '%s\n' "$ANSIBLE_SSH_PRIVATE_KEY" > ~/.ssh/ansible_deploy_key
+          chmod 0600 ~/.ssh/ansible_deploy_key
+
+      - name: Build Ansible inventory
+        shell: bash
+        run: |
+          cat > inventory.ini <<'EOF'
+          [docker_hosts]
+          docker-host ansible_host=${{ steps.terraform_output.outputs.public_ip }} ansible_user=${{ steps.terraform_output.outputs.admin_username }} ansible_ssh_private_key_file=~/.ssh/ansible_deploy_key ansible_python_interpreter=/usr/bin/python3
+          EOF
+
+      - name: Deploy with Ansible
+        run: ansible-playbook -i inventory.ini ansible/playbook.yml

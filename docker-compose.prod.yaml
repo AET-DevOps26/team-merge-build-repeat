@@ -27,13 +27,29 @@ services:
     environment:
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_JPA_SHOW_SQL: "false"
+    secrets: !override
+      - source: app_database_password
+        target: spring.datasource.password
+        mode: 0444
 
   chat:
     pull_policy: always
     restart: unless-stopped
+    secrets: !override
+      - source: chat_database_password
+        target: spring.datasource.password
+        mode: 0444
 
   application-database:
     restart: unless-stopped
+    secrets: !override
+      - source: app_database_password
+        target: app_database_password
+        mode: 0444
 
   chat-database:
     restart: unless-stopped
+    secrets: !override
+      - source: chat_database_password
+        target: chat_database_password
+        mode: 0444

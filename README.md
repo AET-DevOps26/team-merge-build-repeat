@@ -94,6 +94,45 @@ docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down -v
 
 Use `down -v` only when you intentionally want to reset the local PostgreSQL data.
 
+## Production Deployment
+
+Infrastructure and application deployment are separated:
+
+- `.github/workflows/terraform.yaml` creates or updates the Azure Docker host.
+- `.github/workflows/deploy-prod.yaml` deploys the Docker Compose stack with Ansible.
+
+The production deploy workflow is manual. Run `Deploy Production` from GitHub
+Actions on `main` and provide the image tag, for example `v1.2.3`. The workflow
+normalizes the tag to `1.2.3`, reads the VM public IP from Terraform output, and
+deploys the Compose stack to `/opt/team-merge-build-repeat`.
+
+Configure these GitHub repository or `production` environment variables:
+
+| Variable                       | Value                                      |
+| ------------------------------ | ------------------------------------------ |
+| `DOMAIN`                       | Production domain used by Caddy            |
+| `APP_DATABASE_NAME`            | Application database name                  |
+| `APP_DATABASE_USER`            | Application database user                  |
+| `CHAT_DATABASE_NAME`           | Chat database name                         |
+| `CHAT_DATABASE_USER`           | Chat database user                         |
+| `CHAT_DATABASE_SPRING_PROFILE` | Spring profile for the chat service        |
+| `AZURE_CLIENT_ID`              | Azure app registration client ID           |
+| `AZURE_TENANT_ID`              | Azure tenant ID                            |
+| `AZURE_SUBSCRIPTION_ID`        | Azure subscription ID                      |
+| `TF_STATE_RESOURCE_GROUP`      | Resource group containing Terraform state  |
+| `TF_STATE_STORAGE_ACCOUNT`     | Storage account containing Terraform state |
+| `TF_STATE_CONTAINER`           | Blob container containing Terraform state  |
+| `TF_VAR_ssh_public_key`        | Public SSH key allowed on the VM           |
+| `TF_VAR_ssh_source_address_prefix` | SSH source prefix for the VM NSG       |
+
+Configure these GitHub secrets:
+
+| Secret                   | Value                                      |
+| ------------------------ | ------------------------------------------ |
+| `ANSIBLE_SSH_PRIVATE_KEY` | Private key matching `TF_VAR_ssh_public_key` |
+| `APP_DATABASE_PASSWORD`  | Application PostgreSQL password            |
+| `CHAT_DATABASE_PASSWORD` | Chat PostgreSQL password                   |
+
 ## Health Checks
 
 Check the application health endpoints:
