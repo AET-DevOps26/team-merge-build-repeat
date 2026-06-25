@@ -4,7 +4,7 @@ location        = "swedencentral"
 resource_prefix = "tmbr-docker"
 
 admin_username     = "azureuser"
-ssh_public_key_path = "~/.ssh/azure.pub"
+ssh_public_key     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIexamplekeyreplacewithyourpublickey azureuser@example"
 
 # Recommended: use your own public IP with /32.
 # You can get it with: curl https://ifconfig.me

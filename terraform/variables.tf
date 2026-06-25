@@ -43,10 +43,14 @@ variable "admin_username" {
   default     = "azureuser"
 }
 
-variable "ssh_public_key_path" {
-  description = "Path to the existing SSH public key."
+variable "ssh_public_key" {
+  description = "Public SSH key used for the VM admin user."
   type        = string
-  default     = "~/.ssh/azure.pub"
+
+  validation {
+    condition     = can(regex("^(ssh-rsa|ssh-ed25519|ecdsa-sha2-nistp[0-9]+) ", var.ssh_public_key))
+    error_message = "ssh_public_key must be a valid OpenSSH public key."
+  }
 }
 
 variable "ssh_source_address_prefix" {
