@@ -1,0 +1,96 @@
+---
+- name: Deploy Team Merge Build Repeat with Docker Compose
+  hosts: docker_hosts
+  become: true
+  gather_facts: false
+
+  vars:
+    app_deploy_dir: /opt/team-merge-build-repeat
+    app_secrets_dir: "{{ app_deploy_dir }}/secrets"
+    app_compose_files:
+      - docker-compose.yaml
+      - docker-compose.prod.yaml
+
+  pre_tasks:
+    - name: Wait for SSH connection
+      ansible.builtin.wait_for_connection:
+        timeout: 120
+
+    - name: Validate required deploy variables
+      ansible.builtin.assert:
+        that:
+          - app_domain is defined
+          - app_domain | length > 0
+          - app_image_tag is defined
+          - app_image_tag | length > 0
+          - app_database_password is defined
+          - app_database_password | length > 0
+          - chat_database_password is defined
+          - chat_database_password | length > 0
+        fail_msg: "Missing required deployment variables. Check GitHub Actions variables and secrets."
+      no_log: true
+
+  tasks:
+    - name: Create deployment directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "{{ item.mode }}"
+      loop:
+        - path: "{{ app_deploy_dir }}"
+          mode: "0755"
+        - path: "{{ app_secrets_dir }}"
+          mode: "0750"
+
+    - name: Copy Docker Compose files
+      ansible.builtin.copy:
+        src: "../{{ item }}"
+        dest: "{{ app_deploy_dir }}/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ app_compose_files }}"
+
+    - name: Write production environment file
+      ansible.builtin.template:
+        src: templates/prod.env.j2
+        dest: "{{ app_deploy_dir }}/.env"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Write production secret files
+      ansible.builtin.copy:
+        content: "{{ item.value }}"
+        dest: "{{ app_secrets_dir }}/{{ item.name }}"
+        owner: root
+        group: docker
+        mode: "0444"
+      loop:
+        - name: app_database_password
+          value: "{{ app_database_password }}"
+        - name: chat_database_password
+          value: "{{ chat_database_password }}"
+      no_log: true
+
+    - name: Pull production images
+      ansible.builtin.command:
+        cmd: docker compose -f docker-compose.yaml -f docker-compose.prod.yaml pull
+        chdir: "{{ app_deploy_dir }}"
+      changed_when: "'Downloaded newer image' in compose_pull.stdout or 'Pull complete' in compose_pull.stdout"
+      register: compose_pull
+
+    - name: Start production stack
+      ansible.builtin.command:
+        cmd: docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d --remove-orphans --force-recreate
+        chdir: "{{ app_deploy_dir }}"
+      register: compose_up
+      changed_when: "'Started' in compose_up.stdout or 'Created' in compose_up.stdout or 'Recreated' in compose_up.stdout or 'Removed' in compose_up.stdout"
+
+    - name: Show production stack status
+      ansible.builtin.command:
+        cmd: docker compose -f docker-compose.yaml -f docker-compose.prod.yaml ps
+        chdir: "{{ app_deploy_dir }}"
+      changed_when: false
