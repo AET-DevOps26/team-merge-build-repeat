@@ -62,6 +62,9 @@ jobs:
           - name: chat
             context: ./services/chat-database
             image: chat
+          - name: game-engine
+            context: ./services/game-engine
+            image: game-engine
 
     steps:
       - name: Check out repository
