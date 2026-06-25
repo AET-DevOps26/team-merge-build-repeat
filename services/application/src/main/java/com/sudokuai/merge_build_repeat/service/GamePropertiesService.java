@@ -5,6 +5,8 @@ import com.sudokuai.merge_build_repeat.repository.GamePropertiesRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @AllArgsConstructor
 public class GamePropertiesService {
@@ -31,4 +33,27 @@ public class GamePropertiesService {
          return repository.findById(gameId).orElse(null);
      }
 
+    public Object getCurrentState(Long gameId) {
+        return null;
+    }
+
+    public List<List<Integer>> getSolution(Long gameId) {
+       return null;
+    }
+
+    public List<List<Integer>> getTemplateData(Long gameId) {
+        return null;
+    }
+
+    public boolean updatePencilMark(Long gameId, int row, int column, int value) {
+        return false;
+    }
+
+    public void deletePencilMark(Long gameId, int row, int column, int value) {
+
+    }
+
+    public List<List<List<Integer>>> getPencilMarks(Long gameId) {
+            return null;
+    }
 }
