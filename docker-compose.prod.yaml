@@ -55,6 +55,10 @@ services:
     pull_policy: always
     restart: unless-stopped
 
+  game-engine:
+    pull_policy: always
+    restart: unless-stopped
+
   chat-database:
     restart: unless-stopped
     secrets: !override
