@@ -1,15 +1,18 @@
 package com.sudokuai.merge_build_repeat.control;
 
-import com.sudokuai.merge_build_repeat.dto.Move;
+import com.sudokuai.merge_build_repeat.dto.GameResponse;
+import com.sudokuai.merge_build_repeat.dto.*;
+//import com.sudokuai.merge_build_repeat.dto.Move;
+
 import com.sudokuai.merge_build_repeat.model.GameProperties;
 import com.sudokuai.merge_build_repeat.service.GameHistoryService;
 import com.sudokuai.merge_build_repeat.service.GamePropertiesService;
 import com.sudokuai.merge_build_repeat.service.GameTemplateService;
 import lombok.AllArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 
 @RestController
@@ -41,5 +44,79 @@ public class Controller {
         gamePropertiesService.updateGameProperties(gameId, "Updated state at " + System.currentTimeMillis());
         return "You just updated a game! Check the database to see it.";
     }
+
+    @GetMapping("/games/random")
+    public ResponseEntity<GameResponse> getRandomGame(@RequestParam String difficulty) {
+        return ResponseEntity.ok(gameTemplateService.getRandomGameByDifficulty(difficulty));
+    }
+
+    @GetMapping("/templates/{templateId}/new-game")
+    public ResponseEntity<GameResponse> getNewGameByTemplateId(@PathVariable Long templateId) {
+        return ResponseEntity.ok(gameTemplateService.createNewGameFromTemplate(templateId));
+    }
+
+    @GetMapping("/games/{gameId}/state")
+    public ResponseEntity<List<List<Integer>>> getCurrentState(@PathVariable Long gameId) {
+        return ResponseEntity.ok((List<List<Integer>>) gamePropertiesService.getCurrentState(gameId));
+    }
+
+    @GetMapping("/games/{gameId}/solution")
+    public ResponseEntity<List<List<Integer>>> getSolution(@PathVariable Long gameId) {
+        return ResponseEntity.ok(gamePropertiesService.getSolution(gameId));
+    }
+
+    @GetMapping("/games/{gameId}/template")
+    public ResponseEntity<List<List<Integer>>> getTemplate(@PathVariable Long gameId) {
+        return ResponseEntity.ok(gamePropertiesService.getTemplateData(gameId));
+    }
+
+    @PostMapping("/games/{gameId}/history")
+    public ResponseEntity<Boolean> updateGameHistory(@PathVariable Long gameId, @RequestBody Move move) {
+        // Walidacja w serwisie (konwersja indeksów z 1 na 0 w logice biznesowej)
+        boolean isValid = gameHistoryService.validateAndSaveMove(gameId, move.row(), move.col(), move.value());
+        return ResponseEntity.ok(isValid);
+    }
+
+    @PutMapping("/games/{gameId}/pencil-marks")
+    public ResponseEntity<Boolean> updatePencilMarks(@PathVariable Long gameId, @RequestBody PencilMarkRequest mark) {
+        boolean isValidInTemplate = gamePropertiesService.updatePencilMark(gameId, mark.row(), mark.column(), mark.value());
+        return ResponseEntity.ok(isValidInTemplate);
+    }
+
+    @DeleteMapping("/games/{gameId}/pencil-marks")
+    public ResponseEntity<Void> deletePencilMarks(@PathVariable Long gameId, @RequestBody PencilMarkRequest mark) {
+        gamePropertiesService.deletePencilMark(gameId, mark.row(), mark.column(), mark.value());
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/games/{gameId}/pencil-marks")
+    public ResponseEntity<List<List<List<Integer>>>> getCurrentStatePencilMarks(@PathVariable Long gameId) {
+        // Zwraca matrycę 3D (dla każdej komórki lista wpisanych ołówkiem cyfr)
+        return ResponseEntity.ok(gamePropertiesService.getPencilMarks(gameId));
+    }
+
+    @GetMapping("/games/{gameId}/history")
+    public ResponseEntity<List<HistoryRecord>> getHistory(@PathVariable Long gameId) {
+        return ResponseEntity.ok(gameHistoryService.getHistoryRecords(gameId));
+    }
+
+//    @PostMapping("/users/account")
+//    public ResponseEntity<Void> createAccount(@RequestHeader("Authorization") String token) {
+//        // Wyciągamy userId z JWT i tworzymy/aktualizujemy konto
+//        userService.createOrUpdateAccount(token);
+//        return ResponseEntity.ok().build();
+//    }
+
+//    @GetMapping("/users/latest-game")
+//    public ResponseEntity<Long> getLatestGameId(@RequestHeader("Authorization") String token) {
+//        Long latestGameId = userService.getLatestGameIdForUser(token);
+//        return ResponseEntity.ok(latestGameId);
+//    }
+
+//    @GetMapping("/games/{gameId}/verify")
+//    public ResponseEntity<Boolean> verifyGameId(@RequestHeader("Authorization") String token, @PathVariable Long gameId) {
+//        boolean isValid = userService.verifyUserGameAccess(token, gameId);
+//        return ResponseEntity.ok(isValid);
+//    }
 
 }
