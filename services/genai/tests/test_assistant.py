@@ -13,7 +13,6 @@ from genai_service.settings import Settings
 def settings() -> Settings:
     return Settings(
         chat_service_url="http://chat",
-        game_service_url="http://game",
         mcp_command="python",
         mcp_args=["-m", "genai_service.mcp_server"],
         llm_provider="ollama",
