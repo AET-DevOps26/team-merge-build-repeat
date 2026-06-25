@@ -1,7 +1,7 @@
 services:
   caddy:
     image: caddy:2-alpine
-    profiles: ["proxy"]
+    profiles: [ "proxy" ]
     ports:
       - "127.0.0.1:${CADDY_HTTP_PORT:-8088}:80"
     volumes:
@@ -14,7 +14,7 @@ services:
       - "127.0.0.1:${FRONTEND_HOST_PORT:-8090}:8080"
 
   frontend-dev:
-    profiles: ["dev"]
+    profiles: [ "dev" ]
     pull_policy: build
     build:
       context: ./services/frontend
@@ -25,7 +25,7 @@ services:
       - ./services/frontend:/app
       - /app/node_modules
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5173/"]
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:5173/" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -59,3 +59,13 @@ services:
   chat-database:
     ports:
       - "127.0.0.1:${CHAT_DATABASE_POSTGRES_PORT:-5431}:5432"
+
+
+  game-engine:
+    pull_policy: build
+    build:
+      context: ./services/game-engine
+    ports:
+      - "127.0.0.1:${GAME_ENGINE_HOST_PORT:-8082}:8080"
+
+

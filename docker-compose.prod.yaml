@@ -1,6 +1,6 @@
 services:
   caddy:
-    profiles: !reset []
+    profiles: !reset [ ]
     pull_policy: always
     restart: unless-stopped
     ports: !override
@@ -33,6 +33,10 @@ services:
     restart: unless-stopped
 
   application-database:
+    restart: unless-stopped
+
+  game-engine:
+    pull_policy: always
     restart: unless-stopped
 
   chat-database:
