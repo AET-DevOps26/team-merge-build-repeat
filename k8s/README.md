@@ -5,6 +5,8 @@ used by Ansible:
 
 - GHCR images for `frontend`, `application`, `chat`, `genai`, and `game-engine`
 - PostgreSQL `StatefulSet`s for the application and chat databases
+- Init containers that wait for PostgreSQL before starting the dependent
+  Spring services
 - Kubernetes `Secret` data for database passwords and the Logos/OpenAI key
 - Kubernetes `ConfigMap` data for the non-secret runtime configuration
 - NGINX Ingress routing for `/`, `/game-engine`, `/genai`, `/application`, and
@@ -14,6 +16,17 @@ used by Ansible:
 
 The existing production path uses Logos/OpenAI by default, so `ollama` is kept
 under `optional/` and is not part of `kustomization.yaml`.
+
+## Startup Dependencies
+
+Kubernetes does not provide Docker Compose style `depends_on` ordering. The
+manifests handle the database startup dependency explicitly:
+
+- `application` waits for `application-database` with `pg_isready`
+- `chat` waits for `chat-database` with `pg_isready`
+
+All workloads still define readiness probes so Services and Ingress route only
+to ready Pods after startup.
 
 ## GitHub Actions Deployment
 

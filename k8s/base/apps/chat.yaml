@@ -13,6 +13,29 @@ spec:
       labels:
         app.kubernetes.io/name: chat
     spec:
+      initContainers:
+        - name: wait-for-chat-database
+          image: postgres:17
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: CHAT_DATABASE_NAME
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: CHAT_DATABASE_USER
+          command:
+            - /bin/sh
+            - -c
+            - |
+              until pg_isready -h chat-database -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB"; do
+                echo "Waiting for chat-database..."
+                sleep 2
+              done
       containers:
         - name: chat
           image: ghcr.io/aet-devops26/team-merge-build-repeat-chat
