@@ -19,16 +19,27 @@ class SudokuRequest(BaseModel):
 
 app = FastAPI(
     title="Game Engine Service",
-    version="0.1.0",
+    version=os.getenv("APP_VERSION", "0.1.0"),
     description="FastAPI service for game engine",
     root_path=normalize_root_path(os.getenv("GAME_ENGINE_ROOT_PATH", "")),
 )
 
 
-@app.get("/health")
+@app.get("/actuator/health", tags=["actuator"])
 async def health():
     """Health check endpoint"""
-    return JSONResponse({"status": "healthy"})
+    return {"status": "UP"}
+
+
+@app.get("/actuator/info", tags=["actuator"])
+async def info():
+    """Build info endpoint"""
+    return {
+        "build": {
+            "version": os.getenv("APP_VERSION", "0.1.0"),
+            "commit": os.getenv("GIT_COMMIT", "unknown"),
+        }
+    }
 
 
 @app.get("/")
