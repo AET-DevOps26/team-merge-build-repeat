@@ -50,7 +50,12 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
             await app.state.chat_client.aclose()
             await app.state.game_client.aclose()
 
-    app = FastAPI(title="GenAI Service", version=__version__, lifespan=lifespan)
+    app = FastAPI(
+        title="GenAI Service",
+        version=__version__,
+        lifespan=lifespan,
+        root_path=settings.root_path,
+    )
 
     @app.get("/actuator/health", tags=["actuator"])
     async def health() -> dict[str, str]:
