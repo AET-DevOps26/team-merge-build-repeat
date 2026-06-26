@@ -28,7 +28,7 @@ async function fetchAnswer(
   candidates: number[][][],
   message: string,
 ): Promise<string> {
-  const res = await fetch("/api/genai/v1/chat/answer", {
+  const res = await fetch("/genai/v1/chat/answer", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

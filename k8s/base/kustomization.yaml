@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - databases/application-database.yaml
+  - databases/chat-database.yaml
+  - apps/application.yaml
+  - apps/chat.yaml
+  - apps/genai.yaml
+  - apps/game-engine.yaml
+  - apps/frontend.yaml
+  - networking/services.yaml
+  - networking/ingress.yaml

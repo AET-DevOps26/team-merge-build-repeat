@@ -27,7 +27,8 @@ Pushing the tag starts the GitHub Actions workflow
 ## What the Workflow Does
 
 The workflow verifies that the tagged commit is reachable from `main`, validates
-the tag format, builds all service images, and pushes them to GHCR.
+the tag format, builds all service images, pushes them to GHCR, and deploys the
+Kubernetes stack to the production cluster.
 
 For tag `v1.2.3`, the workflow sets:
 
@@ -44,6 +45,9 @@ ghcr.io/aet-devops26/team-merge-build-repeat-application:1.2.3
 ```
 
 Stable releases also get `latest`. Pre-releases such as `v1.2.3-rc.1` do not.
+
+The Kubernetes deployment uses the plain version tag, for example `1.2.3`, and
+waits for the database `StatefulSet`s and application `Deployment`s to roll out.
 
 ## Runtime Version Info
 

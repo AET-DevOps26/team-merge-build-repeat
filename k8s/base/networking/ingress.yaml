@@ -1,0 +1,70 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend
+  namespace: merge-build-repeat
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  name: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: service-prefixes
+  namespace: merge-build-repeat
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /game-engine(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: game-engine
+                port:
+                  name: http
+          - path: /genai(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: genai
+                port:
+                  name: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: services
+  namespace: merge-build-repeat
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /application
+            pathType: Prefix
+            backend:
+              service:
+                name: application
+                port:
+                  name: http
+          - path: /chat
+            pathType: Prefix
+            backend:
+              service:
+                name: chat
+                port:
+                  name: http
