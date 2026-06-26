@@ -100,12 +100,20 @@ Use `down -v` only when you intentionally want to reset the local PostgreSQL dat
 Infrastructure and application deployment are separated:
 
 - `.github/workflows/terraform.yaml` creates or updates the Azure Docker host.
-- `.github/workflows/deploy-prod.yaml` deploys the Docker Compose stack with Ansible.
+- `.github/workflows/deploy-prod-ansible.yaml` deploys the Docker Compose stack with Ansible.
+- `.github/workflows/build-images-on-tag.yaml` builds release images and deploys
+  the Kubernetes stack when a valid release tag is pushed to a commit on `main`.
 
 The production deploy workflow is manual. Run `Deploy Production` from GitHub
 Actions on `main` and provide the image tag, for example `v1.2.3`. The workflow
 normalizes the tag to `1.2.3`, reads the VM public IP from Terraform output, and
 deploys the Compose stack to `/opt/team-merge-build-repeat`.
+
+For Kubernetes deployment, create and push a release tag on `main`. The tag
+workflow verifies that the tagged commit is reachable from `main`, builds all
+service images, creates/updates `app-secrets` and `app-config` in the
+`merge-build-repeat` namespace, applies `k8s/kustomization.yaml`, sets the
+workload images to the release tag, and waits for the rollout.
 
 Configure these GitHub repository or `production` environment variables:
 
@@ -131,8 +139,10 @@ Configure these GitHub secrets:
 | Secret                   | Value                                      |
 | ------------------------ | ------------------------------------------ |
 | `ANSIBLE_SSH_PRIVATE_KEY` | Private key matching `TF_VAR_ssh_public_key` |
+| `KUBE_CONFIG`            | Kubeconfig content for Kubernetes deployment |
 | `APP_DATABASE_PASSWORD`  | Application PostgreSQL password            |
 | `CHAT_DATABASE_PASSWORD` | Chat PostgreSQL password                   |
+| `LOGOS_KEY`              | Logos/OpenAI API key                       |
 
 ## Health Checks
 

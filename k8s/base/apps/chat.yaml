@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat
+  namespace: merge-build-repeat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chat
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: chat
+    spec:
+      containers:
+        - name: chat
+          image: ghcr.io/aet-devops26/team-merge-build-repeat-chat:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SERVER_SERVLET_CONTEXT_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: CHAT_CONTEXT_PATH
+            - name: SPRING_CONFIG_IMPORT
+              value: optional:configtree:/run/secrets/
+            - name: CHAT_DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: CHAT_DATABASE_NAME
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://chat-database:5432/$(CHAT_DATABASE_NAME)
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: CHAT_DATABASE_USER
+            - name: SPRING_FLYWAY_ENABLED
+              value: "true"
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: CHAT_DATABASE_SPRING_PROFILE
+            - name: APPLICATION_SERVICE_BASE_URL
+              value: http://application:8080/application
+          volumeMounts:
+            - name: chat-secret
+              mountPath: /run/secrets
+              readOnly: true
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 250m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+          livenessProbe:
+            httpGet:
+              path: /chat/actuator/health
+              port: http
+            initialDelaySeconds: 45
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /chat/actuator/health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
+      volumes:
+        - name: chat-secret
+          secret:
+            secretName: app-secrets
+            items:
+              - key: chat_database_password
+                path: spring.datasource.password

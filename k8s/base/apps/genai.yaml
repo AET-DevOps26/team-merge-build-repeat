@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: genai
+  namespace: merge-build-repeat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: genai
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: genai
+    spec:
+      containers:
+        - name: genai
+          image: ghcr.io/aet-devops26/team-merge-build-repeat-genai:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: CHAT_SERVICE_URL
+              value: http://chat:8080/chat
+            - name: GAME_SERVICE_URL
+              value: http://application:8080/application
+            - name: LLM_PROVIDER
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: LLM_PROVIDER
+            - name: OLLAMA_BASE_URL
+              value: http://ollama:11434
+            - name: OLLAMA_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: OLLAMA_MODEL
+            - name: OPENAI_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: OPENAI_BASE_URL
+            - name: OPENAI_MODEL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: OPENAI_MODEL
+            - name: OPENAI_API_KEY_FILE
+              value: /run/secrets/logos_key
+            - name: GENAI_ROOT_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: GENAI_ROOT_PATH
+          volumeMounts:
+            - name: logos-secret
+              mountPath: /run/secrets
+              readOnly: true
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 500m
+            limits:
+              memory: 1Gi
+              cpu: "1"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 45
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
+      volumes:
+        - name: logos-secret
+          secret:
+            secretName: app-secrets
+            items:
+              - key: logos_key
+                path: logos_key
