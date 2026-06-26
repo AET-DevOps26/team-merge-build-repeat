@@ -12,6 +12,8 @@ services:
       context: ./services/frontend
     ports:
       - "127.0.0.1:${FRONTEND_HOST_PORT:-8090}:8080"
+    environment:
+      - DOCKER_ENV=true
 
   frontend-dev:
     profiles: [ "dev" ]
