@@ -1,6 +1,6 @@
 services:
   caddy:
-    profiles: !reset [ ]
+    profiles: !reset []
     pull_policy: always
     restart: unless-stopped
     ports: !override
@@ -29,7 +29,7 @@ services:
     pull_policy: always
     restart: unless-stopped
     environment:
-      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
       SPRING_JPA_SHOW_SQL: "false"
     secrets: !override
       - source: app_database_password
