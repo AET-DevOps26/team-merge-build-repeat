@@ -14,13 +14,13 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api/game-engine': {
+      '/game-engine': {
         target: isDocker ? 'http://game-engine:8080' : 'http://localhost:8082',
-        rewrite: (path) => path.replace(/^\/api\/game-engine/, ''),
+        rewrite: (path) => path.replace(/^\/game-engine/, ''),
       },
-      '/api/genai': {
+      '/genai': {
         target: isDocker ? 'http://genai:8080' : 'http://localhost:8002',
-        rewrite: (path) => path.replace(/^\/api\/genai/, ''),
+        rewrite: (path) => path.replace(/^\/genai/, ''),
       },
     },
   },

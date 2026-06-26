@@ -38,14 +38,14 @@ function computeInitialMarks(puzzle: number[][]): number[][][] {
 }
 
 async function fetchSudoku(): Promise<number[][]> {
-  const res = await fetch("/api/game-engine/sudoku")
+  const res = await fetch("/game-engine/sudoku")
   if (!res.ok) throw new Error(`Failed to fetch sudoku: ${res.status}`)
   const data = await res.json()
   return data.sudoku
 }
 
 async function fetchSolution(puzzle: number[][]): Promise<number[][]> {
-  const res = await fetch("/api/game-engine/solution", {
+  const res = await fetch("/game-engine/solution", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sudoku: puzzle })

@@ -7,8 +7,8 @@ used by Ansible:
 - PostgreSQL `StatefulSet`s for the application and chat databases
 - Kubernetes `Secret` data for database passwords and the Logos/OpenAI key
 - Kubernetes `ConfigMap` data for the non-secret runtime configuration
-- NGINX Ingress routing for `/`, `/api/game-engine`, `/api/genai`,
-  `/application`, and `/chat`
+- NGINX Ingress routing for `/`, `/game-engine`, `/genai`, `/application`, and
+  `/chat`
 
 The existing production path uses Logos/OpenAI by default, so `ollama` is kept
 under `optional/` and is not part of `kustomization.yaml`.

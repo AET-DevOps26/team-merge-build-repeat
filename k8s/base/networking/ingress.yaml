@@ -20,7 +20,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: api-rewrite
+  name: service-prefixes
   namespace: merge-build-repeat
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
@@ -31,14 +31,14 @@ spec:
     - host: example.com
       http:
         paths:
-          - path: /api/game-engine(/|$)(.*)
+          - path: /game-engine(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
                 name: game-engine
                 port:
                   name: http
-          - path: /api/genai(/|$)(.*)
+          - path: /genai(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
