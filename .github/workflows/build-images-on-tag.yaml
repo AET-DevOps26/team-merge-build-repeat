@@ -231,6 +231,13 @@ jobs:
       - name: Wait for rollout
         shell: bash
         run: |
+          dump_diagnostics() {
+            kubectl -n merge-build-repeat get pods,replicasets,deployments,statefulsets,svc,ingress
+            kubectl -n merge-build-repeat describe deployment genai
+            kubectl -n merge-build-repeat get events --sort-by='.lastTimestamp'
+          }
+          trap dump_diagnostics ERR
+
           kubectl -n merge-build-repeat rollout status statefulset/application-database --timeout=5m
           kubectl -n merge-build-repeat rollout status statefulset/chat-database --timeout=5m
           kubectl -n merge-build-repeat rollout status deployment/application --timeout=5m
