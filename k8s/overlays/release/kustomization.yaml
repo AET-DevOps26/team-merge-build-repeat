@@ -1,15 +1,15 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - base
+  - ../../base
 images:
   - name: ghcr.io/aet-devops26/team-merge-build-repeat-application
-    newTag: latest
+    newTag: RELEASE_TAG
   - name: ghcr.io/aet-devops26/team-merge-build-repeat-chat
-    newTag: latest
+    newTag: RELEASE_TAG
   - name: ghcr.io/aet-devops26/team-merge-build-repeat-frontend
-    newTag: latest
+    newTag: RELEASE_TAG
   - name: ghcr.io/aet-devops26/team-merge-build-repeat-game-engine
-    newTag: latest
+    newTag: RELEASE_TAG
   - name: ghcr.io/aet-devops26/team-merge-build-repeat-genai
-    newTag: latest
+    newTag: RELEASE_TAG

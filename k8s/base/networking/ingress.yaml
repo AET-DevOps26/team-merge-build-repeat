@@ -6,8 +6,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: example.com
-      http:
+    - http:
         paths:
           - path: /
             pathType: Prefix
@@ -28,8 +27,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: example.com
-      http:
+    - http:
         paths:
           - path: /game-engine(/|$)(.*)
             pathType: ImplementationSpecific
@@ -54,8 +52,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: example.com
-      http:
+    - http:
         paths:
           - path: /application
             pathType: Prefix

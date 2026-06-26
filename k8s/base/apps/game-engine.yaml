@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: game-engine
-          image: ghcr.io/aet-devops26/team-merge-build-repeat-game-engine:latest
+          image: ghcr.io/aet-devops26/team-merge-build-repeat-game-engine
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

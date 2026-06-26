@@ -41,7 +41,7 @@ spec:
     spec:
       containers:
         - name: ollama
-          image: ghcr.io/aet-devops26/team-merge-build-repeat-ollama:latest
+          image: ghcr.io/aet-devops26/team-merge-build-repeat-ollama
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

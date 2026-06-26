@@ -126,7 +126,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      DOMAIN: ${{ vars.DOMAIN }}
       APP_DATABASE_NAME: ${{ vars.APP_DATABASE_NAME || 'game_database' }}
       APP_DATABASE_USER: ${{ vars.APP_DATABASE_USER || 'app_user' }}
       CHAT_DATABASE_NAME: ${{ vars.CHAT_DATABASE_NAME || 'chat_database' }}
@@ -163,7 +162,6 @@ jobs:
       - name: Validate deployment configuration
         shell: bash
         run: |
-          : "${DOMAIN:?Set DOMAIN as a production environment variable.}"
           : "${APP_DATABASE_PASSWORD:?Set APP_DATABASE_PASSWORD as a production secret.}"
           : "${CHAT_DATABASE_PASSWORD:?Set CHAT_DATABASE_PASSWORD as a production secret.}"
           : "${LOGOS_KEY:?Set LOGOS_KEY as a production secret.}"
@@ -214,20 +212,11 @@ jobs:
       - name: Deploy Kubernetes manifests
         shell: bash
         run: |
-          kubectl kustomize k8s \
-            | sed "s/host: example.com/host: ${DOMAIN}/g" \
-            | kubectl apply -f -
-
-          kubectl -n merge-build-repeat set image deployment/application \
-            application="${IMAGE_PREFIX}-application:${{ steps.version.outputs.app_version }}"
-          kubectl -n merge-build-repeat set image deployment/chat \
-            chat="${IMAGE_PREFIX}-chat:${{ steps.version.outputs.app_version }}"
-          kubectl -n merge-build-repeat set image deployment/genai \
-            genai="${IMAGE_PREFIX}-genai:${{ steps.version.outputs.app_version }}"
-          kubectl -n merge-build-repeat set image deployment/game-engine \
-            game-engine="${IMAGE_PREFIX}-game-engine:${{ steps.version.outputs.app_version }}"
-          kubectl -n merge-build-repeat set image deployment/frontend \
-            frontend="${IMAGE_PREFIX}-frontend:${{ steps.version.outputs.app_version }}"
+          release_render_dir="$(mktemp -d)"
+          cp -R k8s "$release_render_dir/k8s"
+          sed -i "s/newTag: RELEASE_TAG/newTag: ${{ steps.version.outputs.app_version }}/g" \
+            "$release_render_dir/k8s/overlays/release/kustomization.yaml"
+          kubectl kustomize "$release_render_dir/k8s/overlays/release" | kubectl apply -f -
 
       - name: Wait for rollout
         shell: bash

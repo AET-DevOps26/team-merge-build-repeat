@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: chat
-          image: ghcr.io/aet-devops26/team-merge-build-repeat-chat:latest
+          image: ghcr.io/aet-devops26/team-merge-build-repeat-chat
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -27,7 +27,7 @@ spec:
                   name: app-config
                   key: CHAT_CONTEXT_PATH
             - name: SPRING_CONFIG_IMPORT
-              value: optional:configtree:/run/secrets/
+              value: optional:configtree:/etc/secrets/
             - name: CHAT_DATABASE_NAME
               valueFrom:
                 configMapKeyRef:
@@ -51,7 +51,7 @@ spec:
               value: http://application:8080/application
           volumeMounts:
             - name: chat-secret
-              mountPath: /run/secrets
+              mountPath: /etc/secrets
               readOnly: true
           resources:
             requests:

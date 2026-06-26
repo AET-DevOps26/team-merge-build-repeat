@@ -45,14 +45,14 @@ spec:
                   name: app-config
                   key: CHAT_DATABASE_USER
             - name: POSTGRES_PASSWORD_FILE
-              value: /run/secrets/chat_database_password
+              value: /etc/secrets/chat_database_password
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
             - name: chat-secret
-              mountPath: /run/secrets
+              mountPath: /etc/secrets
               readOnly: true
           resources:
             requests:

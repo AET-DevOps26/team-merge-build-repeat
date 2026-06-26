@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: genai
-          image: ghcr.io/aet-devops26/team-merge-build-repeat-genai:latest
+          image: ghcr.io/aet-devops26/team-merge-build-repeat-genai
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -50,7 +50,7 @@ spec:
                   name: app-config
                   key: OPENAI_MODEL
             - name: OPENAI_API_KEY_FILE
-              value: /run/secrets/logos_key
+              value: /etc/secrets/logos_key
             - name: GENAI_ROOT_PATH
               valueFrom:
                 configMapKeyRef:
@@ -58,7 +58,7 @@ spec:
                   key: GENAI_ROOT_PATH
           volumeMounts:
             - name: logos-secret
-              mountPath: /run/secrets
+              mountPath: /etc/secrets
               readOnly: true
           resources:
             requests:

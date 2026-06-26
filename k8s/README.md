@@ -9,6 +9,8 @@ used by Ansible:
 - Kubernetes `ConfigMap` data for the non-secret runtime configuration
 - NGINX Ingress routing for `/`, `/game-engine`, `/genai`, `/application`, and
   `/chat`
+- Hostless HTTP Ingress rules so the stack is reachable through the ingress
+  controller IP before a domain exists
 
 The existing production path uses Logos/OpenAI by default, so `ollama` is kept
 under `optional/` and is not part of `kustomization.yaml`.
@@ -24,7 +26,6 @@ Required production environment variables:
 
 | Variable | Default |
 | --- | --- |
-| `DOMAIN` | none |
 | `APP_DATABASE_NAME` | `game_database` |
 | `APP_DATABASE_USER` | `app_user` |
 | `CHAT_DATABASE_NAME` | `chat_database` |
@@ -52,6 +53,11 @@ Render the standard manifests locally with:
 ```sh
 kubectl kustomize k8s
 ```
+
+The local root kustomization renders application images with `latest`. The
+production GitHub Actions workflow renders `k8s/overlays/release` and replaces
+`RELEASE_TAG` with the SemVer tag before applying manifests, so production never
+deploys `latest`.
 
 Apply the optional Ollama workload only when `LLM_PROVIDER=ollama` is intended:
 

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: application
-          image: ghcr.io/aet-devops26/team-merge-build-repeat-application:latest
+          image: ghcr.io/aet-devops26/team-merge-build-repeat-application
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -45,10 +45,10 @@ spec:
             - name: SPRING_JPA_SHOW_SQL
               value: "false"
             - name: SPRING_CONFIG_IMPORT
-              value: optional:configtree:/run/secrets/
+              value: optional:configtree:/etc/secrets/
           volumeMounts:
             - name: application-secret
-              mountPath: /run/secrets
+              mountPath: /etc/secrets
               readOnly: true
           resources:
             requests:

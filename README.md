@@ -113,13 +113,15 @@ For Kubernetes deployment, create and push a release tag on `main`. The tag
 workflow verifies that the tagged commit is reachable from `main`, builds all
 service images, creates/updates `app-secrets` and `app-config` in the
 `merge-build-repeat` namespace, applies `k8s/kustomization.yaml`, sets the
-workload images to the release tag, and waits for the rollout.
+workload images to the release tag, and waits for the rollout. The Kubernetes
+Ingress is hostless HTTP by default, so it can be reached through the ingress
+controller IP before a domain exists.
 
 Configure these GitHub repository or `production` environment variables:
 
 | Variable                       | Value                                      |
 | ------------------------------ | ------------------------------------------ |
-| `DOMAIN`                       | Production domain used by Caddy            |
+| `DOMAIN`                       | Production domain used by Caddy for Ansible deployment |
 | `APP_DATABASE_NAME`            | Application database name                  |
 | `APP_DATABASE_USER`            | Application database user                  |
 | `CHAT_DATABASE_NAME`           | Chat database name                         |

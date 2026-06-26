@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ghcr.io/aet-devops26/team-merge-build-repeat-frontend:latest
+          image: ghcr.io/aet-devops26/team-merge-build-repeat-frontend
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
