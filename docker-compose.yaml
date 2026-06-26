@@ -28,6 +28,7 @@ services:
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://logos.aet.cit.tum.de:8080/v1}
       OPENAI_MODEL: ${OPENAI_MODEL:-openai/gpt-oss-120b}
       OPENAI_API_KEY_FILE: /run/secrets/logos_key
+      GENAI_ROOT_PATH: ${GENAI_ROOT_PATH:-/}
     secrets:
       - source: logos_key
         target: logos_key
@@ -79,6 +80,7 @@ services:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-application:${IMAGE_TAG:-latest}
     environment:
       # Overrides the application.yaml URL to point to the db container
+      SERVER_SERVLET_CONTEXT_PATH: ${APPLICATION_CONTEXT_PATH:-}
       SPRING_CONFIG_IMPORT: optional:configtree:/run/secrets/
       SPRING_DATASOURCE_URL: jdbc:postgresql://application-database:5432/${APP_DATABASE_NAME:-game_database}
       SPRING_DATASOURCE_USERNAME: ${APP_DATABASE_USER:-postgres}
@@ -89,7 +91,7 @@ services:
       - source: app_database_password
         target: spring.datasource.password
     healthcheck:
-      test: [ "CMD", "curl", "-fsS", "http://localhost:8080/actuator/health" ]
+      test: [ "CMD-SHELL", "curl -fsS \"http://localhost:8080$${SERVER_SERVLET_CONTEXT_PATH:-}/actuator/health\"" ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -101,6 +103,7 @@ services:
       chat-database:
         condition: service_healthy
     environment:
+      SERVER_SERVLET_CONTEXT_PATH: ${CHAT_CONTEXT_PATH:-}
       SPRING_CONFIG_IMPORT: optional:configtree:/run/secrets/
       SPRING_DATASOURCE_URL: jdbc:postgresql://chat-database:5432/${CHAT_DATABASE_NAME:-chat_database}
       SPRING_DATASOURCE_USERNAME: ${CHAT_DATABASE_USER:-chat_user}
@@ -110,7 +113,7 @@ services:
       - source: chat_database_password
         target: spring.datasource.password
     healthcheck:
-      test: [ "CMD", "curl", "-fsS", "http://localhost:8080/actuator/health" ]
+      test: [ "CMD-SHELL", "curl -fsS \"http://localhost:8080$${SERVER_SERVLET_CONTEXT_PATH:-}/actuator/health\"" ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -136,6 +139,8 @@ services:
 
   game-engine:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-game-engine:${IMAGE_TAG:-latest}
+    environment:
+      GAME_ENGINE_ROOT_PATH: ${GAME_ENGINE_ROOT_PATH:-/}
     healthcheck:
       test: [ "CMD-SHELL", "curl -fsS http://127.0.0.1:8080/health" ]
       interval: 10s
