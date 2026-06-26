@@ -9,7 +9,7 @@ output "ssh_command" {
 }
 
 output "admin_username" {
-  description = "Admin username for SSH."
+  description = "Admin username for connecting to the VM."
   value       = var.admin_username
 }
 

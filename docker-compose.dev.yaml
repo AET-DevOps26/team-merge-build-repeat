@@ -18,12 +18,14 @@ services:
     pull_policy: build
     build:
       context: ./services/frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: dev.Dockerfile
     ports:
-      - "127.0.0.1:${FRONTEND_DEV_HOST_PORT:-5173}:5173"
+      - "127.0.0.1:${FRONTEND_DEV_HOST_PORT:-5174}:5173"
     volumes:
       - ./services/frontend:/app
       - /app/node_modules
+    environment:
+      - DOCKER_ENV=true
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:5173/" ]
       interval: 10s

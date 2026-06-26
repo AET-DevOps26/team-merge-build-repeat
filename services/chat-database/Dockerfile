@@ -19,8 +19,9 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends curl \
   && rm -rf /var/lib/apt/lists/*
 
-RUN groupadd --system app \
+RUN groupadd --system --gid 10001 app \
   && useradd --system \
+  --uid 10001 \
   --gid app \
   --home-dir /home/app \
   --create-home \
