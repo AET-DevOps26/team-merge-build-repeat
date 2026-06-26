@@ -14,6 +14,11 @@ used by Ansible:
 - Hostless HTTP Ingress rules so the stack is reachable through the ingress
   controller IP before a domain exists
 
+The manifests target the `merge-build-repeat` namespace. The deployment
+workflow attempts to apply `k8s/base/namespace.yaml`, but the main rendered
+Kustomize output does not include the namespace object so namespace-scoped
+deployment credentials can be used when the namespace already exists.
+
 The existing production path uses Logos/OpenAI by default, so `ollama` is kept
 under `optional/` and is not part of `kustomization.yaml`.
 
