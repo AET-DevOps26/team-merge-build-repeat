@@ -8,6 +8,11 @@ output "ssh_command" {
   value       = "ssh ${var.admin_username}@${azurerm_public_ip.main.ip_address}"
 }
 
+output "admin_username" {
+  description = "Admin username for SSH."
+  value       = var.admin_username
+}
+
 output "resource_group_name" {
   description = "Resource group name."
   value       = azurerm_resource_group.main.name
