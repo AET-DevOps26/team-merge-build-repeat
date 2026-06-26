@@ -27,6 +27,8 @@
           - app_database_password | length > 0
           - chat_database_password is defined
           - chat_database_password | length > 0
+          - logos_key is defined
+          - logos_key | length > 0
         fail_msg: "Missing required deployment variables. Check GitHub Actions variables and secrets."
       no_log: true
 
@@ -73,6 +75,8 @@
           value: "{{ app_database_password }}"
         - name: chat_database_password
           value: "{{ chat_database_password }}"
+        - name: logos_key
+          value: "{{ logos_key }}"
       no_log: true
 
     - name: Pull production images
@@ -84,7 +88,7 @@
 
     - name: Start production stack
       ansible.builtin.command:
-        cmd: docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d --remove-orphans --force-recreate
+        cmd: docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d --remove-orphans --force-recreate --pull never
         chdir: "{{ app_deploy_dir }}"
       register: compose_up
       changed_when: "'Started' in compose_up.stdout or 'Created' in compose_up.stdout or 'Recreated' in compose_up.stdout or 'Removed' in compose_up.stdout"
