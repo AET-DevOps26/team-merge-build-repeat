@@ -42,7 +42,7 @@ spec:
               cpu: 10m
             limits:
               memory: 64Mi
-              cpu: 100m
+              cpu: 50m
       containers:
         - name: application
           image: ghcr.io/aet-devops26/team-merge-build-repeat-application
@@ -83,10 +83,10 @@ spec:
           resources:
             requests:
               memory: 256Mi
-              cpu: 250m
+              cpu: 100m
             limits:
               memory: 512Mi
-              cpu: 500m
+              cpu: 250m
           livenessProbe:
             httpGet:
               path: /application/actuator/health
