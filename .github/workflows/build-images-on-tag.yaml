@@ -177,12 +177,22 @@ jobs:
           printf '%s\n' "$KUBE_CONFIG" > "$HOME/.kube/config"
           chmod 0600 "$HOME/.kube/config"
           kubectl version --client
-          kubectl cluster-info
+          for resource in configmaps secrets persistentvolumeclaims services deployments.apps statefulsets.apps ingresses.networking.k8s.io; do
+            for verb in get create patch; do
+              kubectl auth can-i "$verb" "$resource" --namespace merge-build-repeat --quiet
+            done
+          done
+          for resource in pods services deployments.apps statefulsets.apps ingresses.networking.k8s.io; do
+            kubectl auth can-i list "$resource" --namespace merge-build-repeat --quiet
+          done
+          kubectl auth can-i watch deployments.apps --namespace merge-build-repeat --quiet
+          kubectl auth can-i watch statefulsets.apps --namespace merge-build-repeat --quiet
 
       - name: Apply runtime configuration
         shell: bash
         run: |
-          kubectl apply -f k8s/base/namespace.yaml
+          kubectl apply -f k8s/base/namespace.yaml || \
+            echo "Skipping namespace apply; assuming merge-build-repeat already exists."
 
           kubectl -n merge-build-repeat create secret generic app-secrets \
             --from-literal=app_database_password="$APP_DATABASE_PASSWORD" \
