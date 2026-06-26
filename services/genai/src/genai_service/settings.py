@@ -16,8 +16,16 @@ def _read_secret(name: str) -> str:
         return secret_file.read().strip()
 
 
+def _normalize_root_path(value: str) -> str:
+    root_path = value.strip()
+    if root_path == "/":
+        return ""
+    return root_path.rstrip("/")
+
+
 @dataclass(frozen=True)
 class Settings:
+    root_path: str
     chat_service_url: str
     game_service_url: str
     mcp_command: str
@@ -32,6 +40,7 @@ class Settings:
 
 def load_settings() -> Settings:
     return Settings(
+        root_path=_normalize_root_path(os.getenv("GENAI_ROOT_PATH", "")),
         chat_service_url=os.getenv("CHAT_SERVICE_URL", "http://localhost:8081"),
         game_service_url=os.getenv("GAME_SERVICE_URL", "http://localhost:8080"),
         mcp_command=os.getenv("GENAI_MCP_COMMAND", sys.executable),

@@ -5,6 +5,8 @@ chat_database_name: "{{ lookup('env', 'CHAT_DATABASE_NAME') | default('chat_data
 chat_database_user: "{{ lookup('env', 'CHAT_DATABASE_USER') | default('chat_user', true) }}"
 chat_database_spring_profile: "{{ lookup('env', 'CHAT_DATABASE_SPRING_PROFILE') | default('docker', true) }}"
 genai_llm_provider: "{{ lookup('env', 'LLM_PROVIDER') | default('openai', true) }}"
+genai_root_path: "{{ lookup('env', 'GENAI_ROOT_PATH') | default('/genai', true) }}"
+game_engine_root_path: "{{ lookup('env', 'GAME_ENGINE_ROOT_PATH') | default('/game-engine', true) }}"
 
 app_domain: "{{ lookup('env', 'DOMAIN') }}"
 app_image_tag: "{{ lookup('env', 'IMAGE_TAG') }}"

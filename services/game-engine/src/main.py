@@ -1,7 +1,16 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sudoku_solver import generate_sudoku, get_solution
+
+
+def normalize_root_path(value: str) -> str:
+    root_path = value.strip()
+    if root_path == "/":
+        return ""
+    return root_path.rstrip("/")
 
 
 class SudokuRequest(BaseModel):
@@ -11,7 +20,8 @@ class SudokuRequest(BaseModel):
 app = FastAPI(
     title="Game Engine Service",
     version="0.1.0",
-    description="FastAPI service for game engine"
+    description="FastAPI service for game engine",
+    root_path=normalize_root_path(os.getenv("GAME_ENGINE_ROOT_PATH", "")),
 )
 
 
@@ -39,4 +49,3 @@ async def solution(request: SudokuRequest):
     """Get the solution for a Sudoku puzzle"""
     solved = get_solution(request.sudoku)
     return JSONResponse({"sudoku": solved})
-

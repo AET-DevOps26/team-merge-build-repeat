@@ -25,3 +25,19 @@ def test_load_settings_prefers_openai_api_key_env(monkeypatch, tmp_path) -> None
     settings = load_settings()
 
     assert settings.openai_api_key == "lg-env"
+
+
+def test_load_settings_reads_root_path(monkeypatch) -> None:
+    monkeypatch.setenv("GENAI_ROOT_PATH", "/genai")
+
+    settings = load_settings()
+
+    assert settings.root_path == "/genai"
+
+
+def test_load_settings_normalizes_root_path_slash(monkeypatch) -> None:
+    monkeypatch.setenv("GENAI_ROOT_PATH", "/")
+
+    settings = load_settings()
+
+    assert settings.root_path == ""
