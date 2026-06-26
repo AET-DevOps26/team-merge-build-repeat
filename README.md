@@ -8,156 +8,33 @@ Many Sudoku applications provide hints or mark mistakes, but they rarely explain
 This project addresses that gap by building a Sudoku learning platform with integrated AI support.
 The goal is to help users solve puzzles while learning the underlying logic through contextual hints, mistake explanations, and strategy guidance.
 
-## Configuration
+## Documentation
 
-Create a local `.env` file from the example:
+### Local Deployment
 
-```bash
-cp .env.example .env
-```
+For a local deployment, use the Docker Compose based setup described in
+[doc/DOCKER.md](/doc/DOCKER.md). That guide explains the development compose
+files, the `just` wrapper commands, service profiles, and local LLM selection.
 
-Create the required database password secret with one of these options.
+### Ansible Deployment
 
-Option 1: create the secret file manually by editing the file.
+The Ansible deployment runs the production Docker Compose stack on a dedicated
+Docker host. Details about this deployment path are documented in
+[ansible/README.md](ansible/README.md), and the current deployment is available
+at `http://20.91.243.185/`.
 
-Option 2: install `secretctl` and generate the secret:
+### Kubernetes Deployment
 
-```bash
-make secrets
-```
+The Kubernetes deployment runs the application stack in the
+`merge-build-repeat` namespace using the manifests in `k8s/`. Details about the
+Kubernetes deployment path are documented in [k8s/README.md](k8s/README.md), and
+the current deployment is available at `http://131.159.88.14/`.
 
-The following secret files are expected:
+## Additional Documentation
 
-- `secrets/app_database_password`
-- `secrets/chat_database_password`
-- `secrets/logos_key` when `LLM_PROVIDER=openai` is used
-
-## Run The Project
-
-Docker Compose is split into a shared base file and environment-specific
-overrides:
-
-- `docker-compose.yaml` contains the shared service definitions.
-- `docker-compose.dev.yaml` is used for local development, exposes services on
-  localhost, and can build local images.
-- `docker-compose.prod.yaml` is used for production, enables restart policies,
-  uses production Caddy ports, and expects production configuration such as
-  `DOMAIN`.
-
-Start the local development stack:
-
-```bash
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d --build
-```
-
-Start the production stack:
-
-```bash
-docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
-```
-
-Check the running services:
-
-```bash
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml ps
-```
-
-Show logs:
-
-```bash
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml logs -f
-```
-
-The `Justfile` can be used as a shorter wrapper around Docker Compose commands:
-
-```bash
-just dev up -d --build
-just dev ps
-just dev logs -f
-just dev down
-just prod up -d
-just prod ps
-```
-
-## Stop The Project
-
-Stop the containers while keeping the database volume:
-
-```bash
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down
-```
-
-Stop the containers and delete the local database volume:
-
-```bash
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down -v
-```
-
-Use `down -v` only when you intentionally want to reset the local PostgreSQL data.
-
-## Production Deployment
-
-Infrastructure and application deployment are separated:
-
-- `.github/workflows/terraform.yaml` creates or updates the Azure Docker host.
-- `.github/workflows/deploy-prod-ansible.yaml` deploys the Docker Compose stack with Ansible.
-- `.github/workflows/build-images-on-tag.yaml` builds release images and deploys
-  the Kubernetes stack when a valid release tag is pushed to a commit on `main`.
-
-The production deploy workflow is manual. Run `Deploy Production` from GitHub
-Actions on `main` and provide the image tag, for example `v1.2.3`. The workflow
-normalizes the tag to `1.2.3`, reads the VM public IP from Terraform output, and
-deploys the Compose stack to `/opt/team-merge-build-repeat`.
-
-For Kubernetes deployment, create and push a release tag on `main`. The tag
-workflow verifies that the tagged commit is reachable from `main`, builds all
-service images, creates/updates `app-secrets` and `app-config` in the
-`merge-build-repeat` namespace, applies `k8s/kustomization.yaml`, sets the
-workload images to the release tag, and waits for the rollout. The Kubernetes
-Ingress is hostless HTTP by default, so it can be reached through the ingress
-controller IP before a domain exists.
-
-Configure these GitHub repository or `production` environment variables:
-
-| Variable                       | Value                                      |
-| ------------------------------ | ------------------------------------------ |
-| `DOMAIN`                       | Production domain used by Caddy for Ansible deployment |
-| `APP_DATABASE_NAME`            | Application database name                  |
-| `APP_DATABASE_USER`            | Application database user                  |
-| `CHAT_DATABASE_NAME`           | Chat database name                         |
-| `CHAT_DATABASE_USER`           | Chat database user                         |
-| `CHAT_DATABASE_SPRING_PROFILE` | Spring profile for the chat service        |
-| `AZURE_CLIENT_ID`              | Azure app registration client ID           |
-| `AZURE_TENANT_ID`              | Azure tenant ID                            |
-| `AZURE_SUBSCRIPTION_ID`        | Azure subscription ID                      |
-| `TF_STATE_RESOURCE_GROUP`      | Resource group containing Terraform state  |
-| `TF_STATE_STORAGE_ACCOUNT`     | Storage account containing Terraform state |
-| `TF_STATE_CONTAINER`           | Blob container containing Terraform state  |
-| `TF_VAR_ssh_public_key`        | Public SSH key allowed on the VM           |
-| `TF_VAR_ssh_source_address_prefix` | SSH source prefix for the VM NSG       |
-
-Configure these GitHub secrets:
-
-| Secret                   | Value                                      |
-| ------------------------ | ------------------------------------------ |
-| `ANSIBLE_SSH_PRIVATE_KEY` | Private key matching `TF_VAR_ssh_public_key` |
-| `KUBE_CONFIG`            | Kubeconfig content for Kubernetes deployment |
-| `APP_DATABASE_PASSWORD`  | Application PostgreSQL password            |
-| `CHAT_DATABASE_PASSWORD` | Chat PostgreSQL password                   |
-| `LOGOS_KEY`              | Logos/OpenAI API key                       |
-
-## Health Checks
-
-Check the application health endpoints:
-
-```bash
-curl http://127.0.0.1:8083/actuator/health
-```
-
-The default local endpoints are:
-
-- Chat database service: `http://127.0.0.1:8083`
-- Application service: `http://127.0.0.1:8081`
-- PostgreSQL chat database: `http://127.0.0.1:5431`
-- PostgreSQL application: `http://127.0.0.1:5432`
-- Frontend service: `http://127.0.0.1:8090`
+- Local secrets: [secrets/README.md](secrets/README.md)
+- Docker Compose, `just`, profiles, and LLM selection: [doc/DOCKER.md](/doc/DOCKER.md)
+- Release and deployment paths: [RELEASE.md](RELEASE.md)
+- Terraform Docker host details: [terraform/README.md](terraform/README.md)
+- Health and info checks: [doc/HEALTH_AND_INFO.md](doc/HEALTH_AND_INFO.md)
+- API docs and Swagger endpoints: [doc/API_DOCS.md](doc/API_DOCS.md)
