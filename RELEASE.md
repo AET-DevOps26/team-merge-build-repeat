@@ -27,8 +27,10 @@ Pushing the tag starts the GitHub Actions workflow
 ## What the Workflow Does
 
 The workflow verifies that the tagged commit is reachable from `main`, validates
-the tag format, builds all service images, pushes them to GHCR, and deploys the
-Kubernetes stack to the production cluster.
+the tag format, builds all service images, pushes them to GHCR, creates or
+updates runtime Kubernetes `Secret` and `ConfigMap` data, applies the release
+Kustomize overlay, sets all workload images to the release tag, and waits for
+the rollout.
 
 For tag `v1.2.3`, the workflow sets:
 
@@ -48,6 +50,25 @@ Stable releases also get `latest`. Pre-releases such as `v1.2.3-rc.1` do not.
 
 The Kubernetes deployment uses the plain version tag, for example `1.2.3`, and
 waits for the database `StatefulSet`s and application `Deployment`s to roll out.
+See [k8s/README.md](k8s/README.md) for the required Kubernetes variables,
+secrets, ingress paths, and optional Ollama deployment.
+
+## Manual Docker Host Deployment
+
+The Docker host path is split across two manual GitHub Actions workflows on
+`main`:
+
+1. Run `Terraform` to create or update the Azure VM and remote state backed
+   infrastructure.
+2. Run `Deploy Production` with an image tag such as `v1.2.3` or `1.2.3`.
+
+`Deploy Production` reads the VM public IP and admin user from Terraform output,
+builds a temporary Ansible inventory, and runs `ansible/playbook.yml` to deploy
+the production Docker Compose stack to `/opt/team-merge-build-repeat`.
+
+Terraform setup and required Azure variables are documented in
+[terraform/README.md](terraform/README.md). Production Docker Compose behavior is
+documented in [doc/DOCKER.md](/doc/DOCKER.md).
 
 ## Runtime Version Info
 
@@ -65,3 +86,6 @@ The GenAI service exposes the same style of endpoint:
 
 These endpoints include the release version and the Git commit used for the
 build.
+
+Concrete curl commands for local and remote checks are listed in
+[doc/HEALTH_AND_INFO.md](doc/HEALTH_AND_INFO.md).

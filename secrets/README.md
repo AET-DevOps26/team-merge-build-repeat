@@ -1,47 +1,37 @@
-# Secrets
+# Local Secrets
 
 This directory contains the tracked manifest for local Docker Compose secrets.
 Generated secret values stay local and are ignored by Git.
 
-## Important
+## Required Files
 
-- Do not commit real secret values to the repository.
-- Commit only documentation, examples, and `secret.manifest.toml`.
-- The generated `chat_database_password` file must remain local.
-- The `logos_key` file must contain your real `lg-...` Logos key and must
-  remain local.
+The local Compose stack reads these files from `secrets/` by default:
 
-The local Compose stack expects these secret files:
+| File | Required when | Purpose |
+| --- | --- | --- |
+| `app_database_password` | Always | PostgreSQL password for the application database |
+| `chat_database_password` | Always | PostgreSQL password for the chat database |
+| `logos_key` | `LLM_PROVIDER=openai` | Logos/OpenAI-compatible API key |
 
-- `app_database_password`
-- `chat_database_password`
-- `logos_key` when `LLM_PROVIDER=openai` is used
+The file paths can be overridden in `.env` with
+`APP_DATABASE_PASSWORD_FILE`, `CHAT_DATABASE_PASSWORD_FILE`, and
+`LOGOS_KEY_FILE`.
 
-## Creating Secrets
+## Create Local Secrets
 
-From the repository root, run:
+From the repository root:
 
 ```bash
 make secrets
 ```
 
-This installs `secretctl` if needed and then runs:
+This installs `secretctl` if needed and applies `secrets/secret.manifest.toml`.
+For details about the helper scripts, see [scripts/README.md](../scripts/README.md).
 
-```bash
-secretctl apply
-```
-
-The Makefile auto-detects `python3`, `python`, or the Windows `py` launcher.
-You can override it if needed:
-
-```bash
-make secrets PYTHON=python
-```
-
-Create the Logos key manually when you want to use Logos:
+When using OpenAI/Logos locally, create the API key file manually:
 
 ```bash
 printf '%s\n' 'lg-...' > secrets/logos_key
 ```
 
-For details about the helper scripts, see `../scripts/README.md`.
+Do not commit generated secret files or real secret values.

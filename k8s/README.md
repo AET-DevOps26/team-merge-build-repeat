@@ -22,6 +22,11 @@ deployment credentials can be used when the namespace already exists.
 The existing production path uses Logos/OpenAI by default, so `ollama` is kept
 under `optional/` and is not part of `kustomization.yaml`.
 
+For release flow details, see [../RELEASE.md](../RELEASE.md). For API and health
+URLs exposed through the ingress, see
+[../doc/API_DOCS.md](../doc/API_DOCS.md) and
+[../doc/HEALTH_AND_INFO.md](../doc/HEALTH_AND_INFO.md).
+
 ## Startup Dependencies
 
 Kubernetes does not provide Docker Compose style `depends_on` ordering. The
@@ -65,6 +70,10 @@ Required production secrets:
 | `APP_DATABASE_PASSWORD` | Application PostgreSQL password |
 | `CHAT_DATABASE_PASSWORD` | Chat PostgreSQL password |
 | `LOGOS_KEY` | Logos/OpenAI API key |
+
+Set `LLM_PROVIDER=openai` for the default production path. Set
+`LLM_PROVIDER=ollama` only when the optional Ollama workload is deployed and the
+GenAI service can reach it.
 
 Render the standard manifests locally with:
 
