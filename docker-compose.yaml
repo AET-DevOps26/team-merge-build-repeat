@@ -109,6 +109,8 @@ services:
       SPRING_DATASOURCE_USERNAME: ${CHAT_DATABASE_USER:-chat_user}
       SPRING_FLYWAY_ENABLED: "true"
       SPRING_PROFILES_ACTIVE: ${CHAT_DATABASE_SPRING_PROFILE:-docker}
+      SUPABASE_AUTH_ISSUER: ${SUPABASE_AUTH_ISSUER:-https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1}
+      SUPABASE_AUTH_JWKS_URI: ${SUPABASE_AUTH_JWKS_URI:-https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1/.well-known/jwks.json}
     secrets:
       - source: chat_database_password
         target: spring.datasource.password

@@ -61,6 +61,10 @@ Required production environment variables:
 | `GAME_ENGINE_ROOT_PATH` | `/game-engine` |
 | `OPENAI_BASE_URL` | `https://logos.aet.cit.tum.de:8080/v1` |
 | `OPENAI_MODEL` | `openai/gpt-oss-120b` |
+| `SUPABASE_AUTH_ISSUER` | `https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1` |
+| `SUPABASE_AUTH_JWKS_URI` | `https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1/.well-known/jwks.json` |
+| `VITE_SUPABASE_URL` | `https://pwjnldzqwwagnxjycfaq.supabase.co` |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_ILaMZuzBfV5NOnKfCQdJJQ_ESpvjbBt` |
 
 Required production secrets:
 

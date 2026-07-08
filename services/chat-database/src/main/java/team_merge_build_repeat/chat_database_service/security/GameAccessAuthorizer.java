@@ -1,6 +1,7 @@
 package team_merge_build_repeat.chat_database_service.security;
 
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import team_merge_build_repeat.chat_database_service.exception.ForbiddenException;
 import team_merge_build_repeat.chat_database_service.exception.UnauthorizedException;
@@ -16,7 +17,11 @@ public class GameAccessAuthorizer {
 	}
 
 	public boolean hasAccess(Authentication authentication, UUID gameId) {
-		String bearerToken = (String) authentication.getPrincipal();
+		if (!(authentication instanceof JwtAuthenticationToken jwtAuthentication)) {
+			throw new UnauthorizedException("Authentication is required or the provided token is invalid.");
+		}
+
+		String bearerToken = jwtAuthentication.getToken().getTokenValue();
 		return switch (verificationClient.verify(bearerToken, gameId)) {
 			case ALLOWED -> true;
 			case FORBIDDEN -> throw new ForbiddenException("The authenticated user is not allowed to access this game chat.");

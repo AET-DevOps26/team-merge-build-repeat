@@ -2,12 +2,11 @@ package team_merge_build_repeat.chat_database_service.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
-import team_merge_build_repeat.chat_database_service.security.BearerTokenAuthenticationFilter;
 import team_merge_build_repeat.chat_database_service.security.SecurityErrorResponseWriter;
 
 @Configuration
@@ -17,7 +16,6 @@ public class SecurityConfiguration {
 	@Bean
 	SecurityFilterChain securityFilterChain(
 			HttpSecurity http,
-			BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter,
 			SecurityErrorResponseWriter securityErrorResponseWriter
 	) throws Exception {
 		return http
@@ -25,7 +23,9 @@ public class SecurityConfiguration {
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers("/v1/chat/**").authenticated()
 						.anyRequest().permitAll())
-				.addFilterBefore(bearerTokenAuthenticationFilter, AnonymousAuthenticationFilter.class)
+				.oauth2ResourceServer(oauth2 -> oauth2
+						.jwt(Customizer.withDefaults())
+						.authenticationEntryPoint(securityErrorResponseWriter))
 				.exceptionHandling(exceptions -> exceptions
 						.authenticationEntryPoint(securityErrorResponseWriter)
 						.accessDeniedHandler(securityErrorResponseWriter))

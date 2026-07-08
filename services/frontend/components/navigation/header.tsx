@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router-dom"
+import { useAuth } from "@/src/auth/auth-context"
 
 interface HeaderProps {
   showBackButton?: boolean
@@ -7,6 +8,7 @@ interface HeaderProps {
 
 export function Header({ showBackButton = false, variant = "default" }: HeaderProps) {
   const navigate = useNavigate()
+  const { session, signOut } = useAuth()
 
   return (
     <header className="flex justify-between items-center w-full px-6 py-4 bg-primary border-b-4 border-secondary sticky top-0 z-40">
@@ -30,11 +32,12 @@ export function Header({ showBackButton = false, variant = "default" }: HeaderPr
       </Link>
       
       <button 
+        onClick={session ? signOut : () => navigate("/login")}
         className="text-secondary hover:bg-black/10 transition-colors p-2 rounded-full"
-        aria-label={variant === "chat" ? "More options" : "History"}
+        aria-label={session ? "Sign out" : "Sign in"}
       >
         <span className="material-symbols-outlined text-3xl">
-          {variant === "chat" ? "more_vert" : "history"}
+          {session ? "logout" : variant === "chat" ? "more_vert" : "login"}
         </span>
       </button>
     </header>

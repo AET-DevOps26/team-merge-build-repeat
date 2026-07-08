@@ -79,6 +79,16 @@ spec:
                   key: CHAT_DATABASE_SPRING_PROFILE
             - name: APPLICATION_SERVICE_BASE_URL
               value: http://application:8080/application
+            - name: SUPABASE_AUTH_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: SUPABASE_AUTH_ISSUER
+            - name: SUPABASE_AUTH_JWKS_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: SUPABASE_AUTH_JWKS_URI
           volumeMounts:
             - name: chat-secret
               mountPath: /etc/secrets
