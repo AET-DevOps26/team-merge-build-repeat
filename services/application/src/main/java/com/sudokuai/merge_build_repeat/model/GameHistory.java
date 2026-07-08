@@ -3,10 +3,6 @@ package com.sudokuai.merge_build_repeat.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 
 @Entity
 @Table(name = "game_history")
@@ -37,9 +33,4 @@ public class GameHistory {
         this.col = col;
         this.value = value;
     }
-
-    @ManyToOne(cascade = CascadeType.ALL)
-    private GameProperties properties;
-
-
 }

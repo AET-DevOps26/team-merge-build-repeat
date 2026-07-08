@@ -19,10 +19,21 @@ public class GameHistoryService {
     }
 
     public boolean validateAndSaveMove(Long gameId, Integer row, Integer col, Integer value) {
-        return false;
+        //todo: implement validation logic here
+        repository.save(new GameHistory(gameId, row, col, value));
+        return true;
     }
 
     public List<HistoryRecord> getHistoryRecords(Long gameId) {
-        return null;
+         List<GameHistory> history = repository.findByGameId(gameId);
+
+         if (history == null || history.isEmpty()) {
+         throw new RuntimeException("No history found for gameId: " + gameId);
+         }
+
+         return history.stream()
+         .map(h -> new HistoryRecord(h.getId(), h.getRow(), h.getCol(), h.getValue()))
+         .toList();
     }
 }
+

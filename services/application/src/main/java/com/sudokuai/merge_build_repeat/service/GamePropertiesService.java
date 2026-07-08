@@ -1,7 +1,9 @@
 package com.sudokuai.merge_build_repeat.service;
 
 import com.sudokuai.merge_build_repeat.model.GameProperties;
+import com.sudokuai.merge_build_repeat.model.GameTemplate;
 import com.sudokuai.merge_build_repeat.repository.GamePropertiesRepository;
+import com.sudokuai.merge_build_repeat.repository.GameTemplateRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +14,8 @@ import java.util.List;
 public class GamePropertiesService {
 
     GamePropertiesRepository repository;
+    GameTemplateRepository templateRepository;
+    MapperService mapperService;
 
     public Long saveNewGameProperties(Long templateId, String currentState) {
         GameProperties properties = new GameProperties();
@@ -21,39 +25,56 @@ public class GamePropertiesService {
         return properties.getId();
     }
 
-    public void updateGameProperties(Long gameId, String currentState) {
-        GameProperties properties = repository.findById(gameId).orElse(null);
-        if (properties != null) {
-            properties.setCurrentState(currentState);
-            repository.save(properties);
-        }
-    }
+//    public void updateGameProperties(Long gameId, String currentState) {
+//        GameProperties properties = repository.findById(gameId).orElse(null);
+//        if (properties != null) {
+//            properties.setCurrentState(currentState);
+//            repository.save(properties);
+//        }
+//    }
 
     public GameProperties getGamePropertiesByGameId(Long gameId) {
          return repository.findById(gameId).orElse(null);
      }
 
-    public Object getCurrentState(Long gameId) {
+    public List<List<Integer>> getCurrentState(Long gameId) {
+        GameProperties properties = repository.findById(gameId).orElse(null);
+        if (properties != null) {
+            String currentState = properties.getCurrentState();
+            return mapperService.mapToList(currentState);
+        }
         return null;
     }
 
     public List<List<Integer>> getSolution(Long gameId) {
-       return null;
-    }
-
-    public List<List<Integer>> getTemplateData(Long gameId) {
+        GameProperties properties = repository.findById(gameId).orElse(null);
+        if (properties != null) {
+            GameTemplate template = templateRepository.findById(properties.getTemplateId()).orElse(null);
+            String solution = template.getSolutionData();
+            return mapperService.mapToList(solution);
+        }
         return null;
     }
 
-    public boolean updatePencilMark(Long gameId, int row, int column, int value) {
-        return false;
+    public List<List<Integer>> getTemplateData(Long gameId) {
+        GameProperties properties = repository.findById(gameId).orElse(null);
+        if (properties != null) {
+            GameTemplate template = templateRepository.findById(properties.getTemplateId()).orElse(null);
+            String templateData = template.getTemplateData();
+            return mapperService.mapToList(templateData);
+        }
+        return null;
     }
 
-    public void deletePencilMark(Long gameId, int row, int column, int value) {
-
-    }
-
-    public List<List<List<Integer>>> getPencilMarks(Long gameId) {
-            return null;
+    public void updateGameProperties(Long gameId, Integer row, Integer col, Integer value) {
+        GameProperties properties = repository.findById(gameId).orElse(null);
+        if (properties != null) {
+            String currentState = properties.getCurrentState();
+            StringBuilder sb = new StringBuilder(currentState);
+            sb.setCharAt(row * 9 + col, value.toString().charAt(0));
+            String result = sb.toString();
+            properties.setCurrentState(result);
+            repository.save(properties);
+        }
     }
 }

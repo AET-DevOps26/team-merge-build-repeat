@@ -1,7 +1,9 @@
 package com.sudokuai.merge_build_repeat.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Collection;
@@ -11,9 +13,11 @@ import java.util.Collection;
 @Table(name = "game_properties")
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class GameProperties {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; //gameId
 
     @Column(nullable = false)
@@ -22,6 +26,4 @@ public class GameProperties {
     @Column(nullable = false)
     private String currentState;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER, mappedBy = "gameId")
-    private Collection<GameHistory> history;
 }
