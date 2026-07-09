@@ -1,3 +1,5 @@
 package com.sudokuai.merge_build_repeat.dto;
 
-public record HistoryRecord(long id, int row, int col, int value) {}
+import java.util.UUID;
+
+public record HistoryRecord(UUID id, int row, int col, int value) {}

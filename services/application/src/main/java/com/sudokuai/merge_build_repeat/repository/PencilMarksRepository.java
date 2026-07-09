@@ -6,10 +6,11 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface PencilMarksRepository extends JpaRepository<PencilMarks, Long> {
-    PencilMarks findByGameIdAndRowAndCol(Long gameId, int row, int col);
+public interface PencilMarksRepository extends JpaRepository<PencilMarks, UUID> {
+    PencilMarks findByGameIdAndRowAndCol(UUID gameId, int row, int col);
 
-    List<PencilMarks> findByGameId(Long gameId);
+    List<PencilMarks> findByGameId(UUID gameId);
 }

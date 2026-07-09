@@ -32,15 +32,15 @@ public class Controller {
     }
 
 //    @GetMapping(value = "/newGame", produces = "text/plain")
-//    public Long createNewGameID() {
-//        Long id = System.currentTimeMillis();
+//    public UUID createNewGameID() {
+//        UUID id = System.currentTimeMillis();
 //
 //        return id;
 //    }
 
 
     @PutMapping(value = "/updateGame/{gameId}", produces = "text/plain")
-    public String updateGame(@PathVariable Long gameId, Move move) {
+    public String updateGame(@PathVariable UUID gameId, Move move) {
         gameHistoryService.saveGameHistory(gameId, move.row(), move.col(), move.value());
         gamePropertiesService.updateGameProperties(gameId, move.row(), move.col(), move.value());
         return "You just updated a game! Check the database to see it.";
@@ -53,51 +53,51 @@ public class Controller {
     }
 
     @GetMapping("/templates/{templateId}/new-game")
-    public ResponseEntity<GameResponse> getNewGameByTemplateId(@PathVariable Long templateId) {
+    public ResponseEntity<GameResponse> getNewGameByTemplateId(@PathVariable UUID templateId) {
         return ResponseEntity.ok(gameTemplateService.createNewGameFromTemplate(templateId));
     }
 
     @GetMapping("/games/{gameId}/state")
-    public ResponseEntity<List<List<Integer>>> getCurrentState(@PathVariable Long gameId) {
+    public ResponseEntity<List<List<Integer>>> getCurrentState(@PathVariable UUID gameId) {
         return ResponseEntity.ok((List<List<Integer>>) gamePropertiesService.getCurrentState(gameId));
     }
 
     @GetMapping("/games/{gameId}/solution")
-    public ResponseEntity<List<List<Integer>>> getSolution(@PathVariable Long gameId) {
+    public ResponseEntity<List<List<Integer>>> getSolution(@PathVariable UUID gameId) {
         return ResponseEntity.ok(gamePropertiesService.getSolution(gameId));
     }
 
     @GetMapping("/games/{gameId}/template")
-    public ResponseEntity<List<List<Integer>>> getTemplate(@PathVariable Long gameId) {
+    public ResponseEntity<List<List<Integer>>> getTemplate(@PathVariable UUID gameId) {
         return ResponseEntity.ok(gamePropertiesService.getTemplateData(gameId));
     }
 
     @PostMapping("/games/{gameId}/history")
-    public ResponseEntity<Boolean> updateGameHistory(@PathVariable Long gameId, @RequestBody Move move) {
+    public ResponseEntity<Boolean> updateGameHistory(@PathVariable UUID gameId, @RequestBody Move move) {
         // Walidacja w serwisie (konwersja indeksów z 1 na 0 w logice biznesowej)
         boolean isValid = gameHistoryService.validateAndSaveMove(gameId, move.row(), move.col(), move.value());
         return ResponseEntity.ok(isValid);
     }
 
     @PutMapping("/games/{gameId}/pencil-marks")
-    public ResponseEntity<Boolean> updatePencilMarks(@PathVariable Long gameId, @RequestBody PencilMarkRequest mark) {
+    public ResponseEntity<Boolean> updatePencilMarks(@PathVariable UUID gameId, @RequestBody PencilMarkRequest mark) {
         boolean isValidInTemplate = pencilMarksService.updatePencilMark(gameId, mark.row(), mark.column(), mark.value());
         return ResponseEntity.ok(isValidInTemplate);
     }
 
     @DeleteMapping("/games/{gameId}/pencil-marks")
-    public ResponseEntity<Void> deletePencilMarks(@PathVariable Long gameId, @RequestBody PencilMarkRequest mark) {
+    public ResponseEntity<Void> deletePencilMarks(@PathVariable UUID gameId, @RequestBody PencilMarkRequest mark) {
         pencilMarksService.deletePencilMark(gameId, mark.row(), mark.column(), mark.value());
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/games/{gameId}/pencil-marks")
-    public ResponseEntity<List<List<List<Integer>>>> getCurrentStatePencilMarks(@PathVariable Long gameId) {
+    public ResponseEntity<List<List<List<Integer>>>> getCurrentStatePencilMarks(@PathVariable UUID gameId) {
         return ResponseEntity.ok(pencilMarksService.getPencilMarks(gameId));
     }
 
     @GetMapping("/games/{gameId}/history")
-    public ResponseEntity<List<HistoryRecord>> getHistory(@PathVariable Long gameId) {
+    public ResponseEntity<List<HistoryRecord>> getHistory(@PathVariable UUID gameId) {
         return ResponseEntity.ok(gameHistoryService.getHistoryRecords(gameId));
     }
 
@@ -108,19 +108,19 @@ public class Controller {
     }
 
     @PutMapping("/users/account")
-    public ResponseEntity<Void> updateAccount(UUID userId, Long gameId) {
+    public ResponseEntity<Void> updateAccount(UUID userId, UUID gameId) {
         accountService.updateAccount(userId, gameId);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/users/latest-game")
-    public ResponseEntity<Long> getLatestGameId(@RequestParam Long userId) {
-        Long latestGameId = accountService.getLatestGameId(userId);
+    public ResponseEntity<UUID> getLatestGameId(@RequestParam UUID userId) {
+        UUID latestGameId = accountService.getLatestGameId(userId);
         return ResponseEntity.ok(latestGameId);
     }
 
     @GetMapping("/games/{gameId}/verify")
-    public ResponseEntity<Boolean> verifyGameId(@PathVariable Long gameId, @RequestParam Long userId) {
+    public ResponseEntity<Boolean> verifyGameId(@PathVariable UUID gameId, @RequestParam UUID userId) {
         boolean isValid = accountService.verifyUserGameAccess(gameId, userId);
         return ResponseEntity.ok(isValid);
     }

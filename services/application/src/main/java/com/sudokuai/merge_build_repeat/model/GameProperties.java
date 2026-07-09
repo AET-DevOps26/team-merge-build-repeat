@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Collection;
+import java.util.UUID;
 
 
 @Entity
@@ -18,10 +19,11 @@ import java.util.Collection;
 public class GameProperties {
     @Id
 //    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; //gameId
+    @Column(columnDefinition = "uuid", updatable = false, nullable = false)
+    private UUID id; //gameId
 
     @Column(nullable = false)
-    private Long templateId;
+    private UUID templateId;
 
     @Column(nullable = false)
     private String currentState;

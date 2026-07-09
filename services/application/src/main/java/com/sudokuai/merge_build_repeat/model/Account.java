@@ -14,9 +14,11 @@ import java.util.UUID;
 @NoArgsConstructor
 public class Account {
     @Id
+    @GeneratedValue
+    @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID userId;
 
     @Column
-    private Long gameId;
+    private UUID gameId;
 
 }

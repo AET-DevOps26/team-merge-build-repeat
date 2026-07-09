@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @AllArgsConstructor
@@ -17,7 +18,7 @@ public class GamePropertiesService {
     GameTemplateRepository templateRepository;
     MapperService mapperService;
 
-    public Long saveNewGameProperties(Long templateId, String currentState) {
+    public UUID saveNewGameProperties(UUID templateId, String currentState) {
         GameProperties properties = new GameProperties();
         properties.setTemplateId(templateId);
         properties.setCurrentState(currentState);
@@ -25,7 +26,7 @@ public class GamePropertiesService {
         return properties.getId();
     }
 
-//    public void updateGameProperties(Long gameId, String currentState) {
+//    public void updateGameProperties(UUID gameId, String currentState) {
 //        GameProperties properties = repository.findById(gameId).orElse(null);
 //        if (properties != null) {
 //            properties.setCurrentState(currentState);
@@ -33,11 +34,11 @@ public class GamePropertiesService {
 //        }
 //    }
 
-    public GameProperties getGamePropertiesByGameId(Long gameId) {
+    public GameProperties getGamePropertiesByGameId(UUID gameId) {
          return repository.findById(gameId).orElse(null);
      }
 
-    public List<List<Integer>> getCurrentState(Long gameId) {
+    public List<List<Integer>> getCurrentState(UUID gameId) {
         GameProperties properties = repository.findById(gameId).orElse(null);
         if (properties != null) {
             String currentState = properties.getCurrentState();
@@ -46,7 +47,7 @@ public class GamePropertiesService {
         return null;
     }
 
-    public List<List<Integer>> getSolution(Long gameId) {
+    public List<List<Integer>> getSolution(UUID gameId) {
         GameProperties properties = repository.findById(gameId).orElse(null);
         if (properties != null) {
             GameTemplate template = templateRepository.findById(properties.getTemplateId()).orElse(null);
@@ -56,7 +57,7 @@ public class GamePropertiesService {
         return null;
     }
 
-    public List<List<Integer>> getTemplateData(Long gameId) {
+    public List<List<Integer>> getTemplateData(UUID gameId) {
         GameProperties properties = repository.findById(gameId).orElse(null);
         if (properties != null) {
             GameTemplate template = templateRepository.findById(properties.getTemplateId()).orElse(null);
@@ -66,7 +67,7 @@ public class GamePropertiesService {
         return null;
     }
 
-    public void updateGameProperties(Long gameId, Integer row, Integer col, Integer value) {
+    public void updateGameProperties(UUID gameId, Integer row, Integer col, Integer value) {
         GameProperties properties = repository.findById(gameId).orElse(null);
         if (properties != null) {
             String currentState = properties.getCurrentState();

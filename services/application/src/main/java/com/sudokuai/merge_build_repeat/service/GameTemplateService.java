@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @AllArgsConstructor
@@ -30,7 +31,7 @@ public class GameTemplateService {
 
     public GameResponse getRandomGameByDifficulty(String difficulty) {
         GameTemplate template = templateRepository.findByDifficulty(difficulty).stream().findAny().get();
-        long game_id = getGameId();
+        UUID game_id = getGameId();
 
         propertiesRepository.save(new GameProperties(game_id, template.getId(), template.getTemplateData()));
         return new GameResponse(
@@ -40,14 +41,14 @@ public class GameTemplateService {
         );
     }
 
-    private static long getGameId() {
+    private static UUID getGameId() {
         SecureRandom secureRandom = new SecureRandom();
-        long game_id = Math.abs(secureRandom.nextLong());
+        UUID game_id = new UUID(secureRandom.nextLong(), secureRandom.nextLong());
         return game_id;
     }
 
-    public GameResponse createNewGameFromTemplate(Long templateId) {
-        long game_id = getGameId();
+    public GameResponse createNewGameFromTemplate(UUID templateId) {
+        UUID game_id = getGameId();
         GameTemplate template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new NoTemplateException("Template with ID " + templateId + " not found"));
 

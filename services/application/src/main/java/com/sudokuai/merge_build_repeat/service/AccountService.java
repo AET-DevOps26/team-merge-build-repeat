@@ -21,17 +21,17 @@ public class AccountService {
         repository.save(new Account(userId, null));
     }
 
-    public void updateAccount(UUID userId, Long gameId) {
+    public void updateAccount(UUID userId, UUID gameId) {
         repository.save(new Account(userId, gameId));
     }
 
 
-    public Long getLatestGameId(Long userId) {
+    public UUID getLatestGameId(UUID userId) {
         Account account = repository.findById(userId).orElseThrow(() -> new RuntimeException("Account not found for userId: " + userId));
         return account.getGameId();
     }
 
-    public boolean verifyUserGameAccess(Long gameId, Long userId) {
+    public boolean verifyUserGameAccess(UUID gameId, UUID userId) {
         Account account = repository.findById(userId).orElseThrow(() -> new RuntimeException("Account not found for userId: " + userId));
         return account.getGameId() != null && account.getGameId().equals(gameId);
     }

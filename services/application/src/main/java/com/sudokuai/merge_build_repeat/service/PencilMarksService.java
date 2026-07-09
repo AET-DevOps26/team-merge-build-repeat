@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @AllArgsConstructor
@@ -14,7 +15,7 @@ public class PencilMarksService {
     PencilMarksRepository pencilMarksRepository;
 
 
-    public boolean updatePencilMark(Long gameId, int row, int col, int value) {
+    public boolean updatePencilMark(UUID gameId, int row, int col, int value) {
         PencilMarks marks = pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, col);
         if (marks == null) {
             marks = new PencilMarks();
@@ -35,7 +36,7 @@ public class PencilMarksService {
         return true;
     }
 
-    public void deletePencilMark(Long gameId, int row, int column, int value) {
+    public void deletePencilMark(UUID gameId, int row, int column, int value) {
         PencilMarks marks = pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, column);
         if (marks != null) {
             String existingMarks = marks.getMarks();
@@ -45,7 +46,7 @@ public class PencilMarksService {
         }
     }
 
-    public List<List<List<Integer>>> getPencilMarks(Long gameId) {
+    public List<List<List<Integer>>> getPencilMarks(UUID gameId) {
         List<PencilMarks> marksList = pencilMarksRepository.findByGameId(gameId);
         List<List<List<Integer>>> pencilMarks = new java.util.ArrayList<>(9);
         for (int i = 0; i < 9; i++) {
