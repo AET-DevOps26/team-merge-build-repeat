@@ -1,6 +1,6 @@
 services:
   caddy:
-    profiles: !reset []
+    profiles: !reset [ ]
     pull_policy: always
     restart: unless-stopped
     ports: !override
@@ -61,3 +61,7 @@ services:
       - source: chat_database_password
         target: chat_database_password
         mode: 0444
+
+  prometheus:
+    pull_policy: always
+    restart: unless-stopped
