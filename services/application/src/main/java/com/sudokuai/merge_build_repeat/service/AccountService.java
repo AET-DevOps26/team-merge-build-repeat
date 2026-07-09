@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @AllArgsConstructor
@@ -16,11 +17,11 @@ public class AccountService {
 
     AccountRepository repository;
 
-    public void createAccount(Long userId) {
+    public void createAccount(UUID userId) {
         repository.save(new Account(userId, null));
     }
 
-    public void updateAccount(Long userId, Long gameId) {
+    public void updateAccount(UUID userId, Long gameId) {
         repository.save(new Account(userId, gameId));
     }
 

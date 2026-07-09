@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 
 @RestController
@@ -101,13 +102,13 @@ public class Controller {
     }
 
     @PostMapping("/users/account")
-    public ResponseEntity<Void> createAccount(Long userId) {
+    public ResponseEntity<Void> createAccount(UUID userId) {
         accountService.createAccount(userId);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/users/account")
-    public ResponseEntity<Void> updateAccount(Long userId, Long gameId) {
+    public ResponseEntity<Void> updateAccount(UUID userId, Long gameId) {
         accountService.updateAccount(userId, gameId);
         return ResponseEntity.ok().build();
     }
