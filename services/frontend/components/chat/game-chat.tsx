@@ -12,11 +12,8 @@ interface GameChatProps {
   gameId: string
   board: number[][]
   candidates: number[][][]
+  accessToken: string
 }
-
-// Placeholder token until real auth is wired up. The genai service only checks
-// that a non-blank Bearer token is present.
-const AUTH_TOKEN = "dev-token"
 
 function now(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -27,12 +24,13 @@ async function fetchAnswer(
   board: number[][],
   candidates: number[][][],
   message: string,
+  accessToken: string,
 ): Promise<string> {
   const res = await fetch("/genai/v1/chat/answer", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${AUTH_TOKEN}`,
+      Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({ gameId, board, candidates, message }),
   })
@@ -41,7 +39,7 @@ async function fetchAnswer(
   return data.assistantResponse
 }
 
-export function GameChat({ gameId, board, candidates }: GameChatProps) {
+export function GameChat({ gameId, board, candidates, accessToken }: GameChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -68,7 +66,7 @@ export function GameChat({ gameId, board, candidates }: GameChatProps) {
     setLoading(true)
 
     try {
-      const answer = await fetchAnswer(gameId, board, candidates, trimmed)
+      const answer = await fetchAnswer(gameId, board, candidates, trimmed, accessToken)
       setMessages(prev => [...prev, {
         id: `${Date.now()}-assistant`,
         role: "assistant",

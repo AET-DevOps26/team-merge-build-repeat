@@ -2,6 +2,7 @@
 @import 'tw-animate-css';
 
 @source "../components/**/*.tsx";
+@source "./auth/**/*.tsx";
 @source "./pages/**/*.tsx";
 
 @custom-variant dark (&:is(.dark *));
