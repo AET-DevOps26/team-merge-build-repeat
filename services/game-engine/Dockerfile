@@ -12,7 +12,7 @@ WORKDIR /app
 # Create virtualenv and install FastAPI with standard extras (includes uvicorn, pydantic, etc.)
 RUN python -m venv .venv \
   && .venv/bin/pip install --upgrade pip setuptools wheel \
-  && .venv/bin/pip install --no-cache-dir "fastapi[standard]>=0.115.0" "py-sudoku>=2.0.0"
+  && .venv/bin/pip install --no-cache-dir "fastapi[standard]>=0.115.0" "py-sudoku>=2.0.0" "prometheus-fastapi-instrumentator>=6.0.0"
 
 COPY src ./src
 

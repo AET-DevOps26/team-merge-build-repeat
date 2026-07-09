@@ -1,6 +1,7 @@
 import os
 
 from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sudoku_solver import generate_sudoku, get_solution
@@ -23,6 +24,8 @@ app = FastAPI(
     description="FastAPI service for game engine",
     root_path=normalize_root_path(os.getenv("GAME_ENGINE_ROOT_PATH", "")),
 )
+
+Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/actuator/health", tags=["actuator"])

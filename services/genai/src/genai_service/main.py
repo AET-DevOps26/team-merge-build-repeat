@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
 from fastapi import FastAPI, Header, HTTPException, Request, status
+from prometheus_fastapi_instrumentator import Instrumentator
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 
@@ -154,3 +155,5 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
 
 
 app = create_app()
+
+Instrumentator().instrument(app).expose(app)
