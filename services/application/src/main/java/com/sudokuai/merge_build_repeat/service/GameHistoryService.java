@@ -20,7 +20,13 @@ public class GameHistoryService {
     }
 
     public boolean validateAndSaveMove(UUID gameId, Integer row, Integer col, Integer value) {
-        //todo: implement validation logic here
+        if (gameId == null || row == null || col == null || value == null) {
+            return false;
+        }
+        if (row < 0 || row > 8 || col < 0 || col > 8 || value < 0 || value > 9) {
+            return false;
+        }
+
         repository.save(new GameHistory(gameId, row, col, value));
         return true;
     }
@@ -37,4 +43,3 @@ public class GameHistoryService {
          .toList();
     }
 }
-

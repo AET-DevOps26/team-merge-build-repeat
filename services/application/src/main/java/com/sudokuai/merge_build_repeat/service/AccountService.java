@@ -1,14 +1,12 @@
 package com.sudokuai.merge_build_repeat.service;
 
-import com.sudokuai.merge_build_repeat.dto.HistoryRecord;
 import com.sudokuai.merge_build_repeat.model.Account;
-import com.sudokuai.merge_build_repeat.model.GameHistory;
 import com.sudokuai.merge_build_repeat.repository.AccountRepository;
-import com.sudokuai.merge_build_repeat.repository.GameHistoryRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -30,13 +28,14 @@ public class AccountService {
 
 
     public UUID getLatestGameId(UUID userId) {
-        Account account = repository.findById(userId).orElseThrow(() -> new RuntimeException("Account not found for userId: " + userId));
+        Account account = repository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found for userId: " + userId));
         return account.getGameId();
     }
 
     public boolean verifyUserGameAccess(UUID gameId, UUID userId) {
-        Account account = repository.findById(userId).orElseThrow(() -> new RuntimeException("Account not found for userId: " + userId));
+        Account account = repository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found for userId: " + userId));
         return account.getGameId() != null && account.getGameId().equals(gameId);
     }
 }
-
