@@ -26,6 +26,7 @@ class SudokuAssistant(Protocol):
         request: GenerateChatAnswerRequest,
         history: list[ChatMessage],
         solution: JsonBoard,
+        template: JsonBoard,
     ) -> str:
         pass
 
@@ -47,8 +48,9 @@ class LangChainSudokuAssistant:
         request: GenerateChatAnswerRequest,
         history: list[ChatMessage],
         solution: JsonBoard,
+        template: JsonBoard,
     ) -> str:
-        messages = self._build_messages(request, history, solution)
+        messages = self._build_messages(request, history, solution, template)
 
         if self._chat_model is not None:
             return await self._answer_with_model(messages)
@@ -60,6 +62,7 @@ class LangChainSudokuAssistant:
         request: GenerateChatAnswerRequest,
         history: list[ChatMessage],
         solution: JsonBoard,
+        template: JsonBoard,
     ) -> list[BaseMessage]:
         messages: list[BaseMessage] = [
             SystemMessage(
@@ -79,6 +82,7 @@ class LangChainSudokuAssistant:
 
         state = {
             "board": request.board,
+            "template": template,
             "solution": solution,
             "candidates": request.candidates,
             "question": request.message,

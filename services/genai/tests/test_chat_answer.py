@@ -19,11 +19,22 @@ def empty_candidates() -> list[list[list[int]]]:
 
 
 class FakeGameClient:
+    def __init__(self) -> None:
+        self.loaded_template = False
+
     async def get_solution(
         self,
         game_id: UUID,
         authorization: str,
     ) -> list[list[int]]:
+        return empty_board()
+
+    async def get_template(
+        self,
+        game_id: UUID,
+        authorization: str,
+    ) -> list[list[int]]:
+        self.loaded_template = True
         return empty_board()
 
 
@@ -72,6 +83,7 @@ class FakeAssistant:
         request: GenerateChatAnswerRequest,
         history: list,
         solution: list[list[int]],
+        template: list[list[int]],
     ) -> str:
         self.history_size = len(history)
         return self.response
@@ -83,6 +95,7 @@ class FailingAssistant:
         request: GenerateChatAnswerRequest,
         history: list,
         solution: list[list[int]],
+        template: list[list[int]],
     ) -> str:
         raise AssistantError("Assistant orchestration failed.")
 
@@ -92,9 +105,10 @@ def test_answer_chat_uses_history_and_stores_user_and_assistant_messages() -> No
         app = create_app()
         game_id = uuid4()
         chat_client = FakeChatClient()
+        game_client = FakeGameClient()
         assistant = FakeAssistant()
         app.state.chat_client = chat_client
-        app.state.game_client = FakeGameClient()
+        app.state.game_client = game_client
         app.state.assistant = assistant
         transport = httpx.ASGITransport(app=app)
 
@@ -120,6 +134,7 @@ def test_answer_chat_uses_history_and_stores_user_and_assistant_messages() -> No
             "assistantResponse": "Setze 5 in Zeile 1, Spalte 1.",
         }
         assert chat_client.authorization == "Bearer test-token"
+        assert game_client.loaded_template is True
         assert assistant.history_size == 1
         assert chat_client.created_messages == [
             (

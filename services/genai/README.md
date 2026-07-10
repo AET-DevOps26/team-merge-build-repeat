@@ -83,9 +83,26 @@ GAME_SERVICE_URL=http://localhost:8080
 ```
 
 Before calculating a Sudoku strategy, the service retrieves the solved board
-from `GET /v1/games/{gameId}/solution` on `GAME_SERVICE_URL`. The endpoint must
-return `{ "gameId": "...", "solution": [[...]] }` and receives the caller's
-`Authorization` header.
+from `GET /games/{gameId}/solution` and the original puzzle template from
+`GET /games/{gameId}/template` on `GAME_SERVICE_URL`. `GAME_SERVICE_URL` may
+include an Application context path such as `http://application:8080/application`.
+Both endpoints receive the caller's `Authorization` header.
+
+Application is the data source for game state, template, and solution. Sudoku
+validation for assistant answers is intentionally local to GenAI: the local MCP
+server validates the current board and candidates against the loaded solution
+before a strategy is selected.
+
+The current Application service returns a raw 9x9 board matrix. GenAI also
+accepts object responses for forward compatibility:
+
+```json
+{ "gameId": "...", "solution": [[...]] }
+```
+
+```json
+{ "gameId": "...", "template": [[...]] }
+```
 
 ## MCP server
 

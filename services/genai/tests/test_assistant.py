@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from typing import Any
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from genai_service.assistant import AssistantError, LangChainSudokuAssistant
+from genai_service.schemas import GenerateChatAnswerRequest
 from genai_service.settings import Settings
 
 
 def settings() -> Settings:
     return Settings(
+        root_path="",
         chat_service_url="http://chat",
         game_service_url="http://game",
         mcp_command="python",
@@ -59,6 +62,37 @@ class FakeModel:
                 ],
             )
         return AIMessage(content="Setze 5 in Zeile 1, Spalte 1.")
+
+
+def empty_board() -> list[list[int]]:
+    return [[0 for _ in range(9)] for _ in range(9)]
+
+
+def empty_candidates() -> list[list[list[int]]]:
+    return [[[] for _ in range(9)] for _ in range(9)]
+
+
+def test_prompt_contains_template_and_solution_for_local_validation_context() -> None:
+    assistant = LangChainSudokuAssistant(settings())
+    solution = empty_board()
+    solution[0][0] = 5
+    template = empty_board()
+    template[0][0] = 5
+    request = GenerateChatAnswerRequest.model_validate(
+        {
+            "gameId": "00000000-0000-0000-0000-000000000000",
+            "board": empty_board(),
+            "candidates": empty_candidates(),
+            "message": "Was ist falsch?",
+        }
+    )
+
+    messages = assistant._build_messages(request, [], solution, template)
+    state_json = messages[-1].content.split("\n", maxsplit=1)[1]
+    state = json.loads(state_json)
+
+    assert state["template"] == template
+    assert state["solution"] == solution
 
 
 def test_model_loop_executes_mcp_tool_and_returns_follow_up_response() -> None:

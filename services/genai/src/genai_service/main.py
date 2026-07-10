@@ -108,6 +108,7 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
 
         try:
             solution = await game_client.get_solution(payload.game_id, authorization)
+            template = await game_client.get_template(payload.game_id, authorization)
         except GameServiceError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -119,6 +120,7 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
                 payload,
                 chat.messages,
                 solution,
+                template,
             )
         except AssistantError as exc:
             raise HTTPException(

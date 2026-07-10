@@ -21,7 +21,7 @@ def test_game_client_gets_solution_with_authorization() -> None:
             requests.append(request)
             return httpx.Response(
                 200,
-                json={"gameId": str(game_id), "solution": empty_board()},
+                json=empty_board(),
             )
 
         async with httpx.AsyncClient(
@@ -32,8 +32,58 @@ def test_game_client_gets_solution_with_authorization() -> None:
             solution = await client.get_solution(game_id, "Bearer abc")
 
         assert solution == empty_board()
-        assert requests[0].url.path == f"/v1/games/{game_id}/solution"
+        assert requests[0].url.path == f"/games/{game_id}/solution"
         assert requests[0].headers["Authorization"] == "Bearer abc"
+
+    asyncio.run(run())
+
+
+def test_game_client_gets_template_with_authorization() -> None:
+    async def run() -> None:
+        game_id = uuid4()
+        requests: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            return httpx.Response(
+                200,
+                json={"gameId": str(game_id), "template": empty_board()},
+            )
+
+        async with httpx.AsyncClient(
+            base_url="http://game-service",
+            transport=httpx.MockTransport(handler),
+        ) as http_client:
+            client = GameServiceClient("http://game-service", client=http_client)
+            template = await client.get_template(game_id, "Bearer abc")
+
+        assert template == empty_board()
+        assert requests[0].url.path == f"/games/{game_id}/template"
+        assert requests[0].headers["Authorization"] == "Bearer abc"
+
+    asyncio.run(run())
+
+
+def test_game_client_preserves_base_url_context_path() -> None:
+    async def run() -> None:
+        game_id = uuid4()
+        requests: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            return httpx.Response(200, json=empty_board())
+
+        async with httpx.AsyncClient(
+            base_url="http://game-service/application/",
+            transport=httpx.MockTransport(handler),
+        ) as http_client:
+            client = GameServiceClient(
+                "http://game-service/application",
+                client=http_client,
+            )
+            await client.get_solution(game_id, "Bearer abc")
+
+        assert requests[0].url.path == f"/application/games/{game_id}/solution"
 
     asyncio.run(run())
 

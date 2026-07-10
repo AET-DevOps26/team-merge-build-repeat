@@ -4,7 +4,12 @@ from uuid import UUID
 
 import httpx
 
-from genai_service.schemas import GameSolutionResponse, JsonBoard
+from genai_service.schemas import (
+    GameSolutionResponse,
+    GameTemplateResponse,
+    JsonBoard,
+    JsonBoardResponse,
+)
 
 
 class GameServiceError(RuntimeError):
@@ -14,7 +19,7 @@ class GameServiceError(RuntimeError):
 
 
 class GameServiceClient:
-    """Stub client for the service that owns Sudoku game solutions."""
+    """HTTP client for the Application service that owns Sudoku game data."""
 
     def __init__(
         self,
@@ -32,10 +37,24 @@ class GameServiceClient:
     async def get_solution(self, game_id: UUID, authorization: str) -> JsonBoard:
         response = await self._request(
             "GET",
-            f"/v1/games/{game_id}/solution",
+            f"games/{game_id}/solution",
             authorization=authorization,
         )
-        return GameSolutionResponse.model_validate(response.json()).solution
+        data = response.json()
+        if isinstance(data, list):
+            return JsonBoardResponse.model_validate(data).root
+        return GameSolutionResponse.model_validate(data).solution
+
+    async def get_template(self, game_id: UUID, authorization: str) -> JsonBoard:
+        response = await self._request(
+            "GET",
+            f"games/{game_id}/template",
+            authorization=authorization,
+        )
+        data = response.json()
+        if isinstance(data, list):
+            return JsonBoardResponse.model_validate(data).root
+        return GameTemplateResponse.model_validate(data).template
 
     async def aclose(self) -> None:
         if self._owns_client:
