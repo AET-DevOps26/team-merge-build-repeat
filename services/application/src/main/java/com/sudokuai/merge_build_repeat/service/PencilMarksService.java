@@ -18,17 +18,22 @@ public class PencilMarksService {
 
     @Transactional
     public boolean updatePencilMark(UUID gameId, int row, int col, int value) {
+        if (row < 0 || row > 8 || col < 0 || col > 8 || value < 1 || value > 9) {
+            return false;
+        }
+
+        String markValue = String.valueOf(value);
         PencilMarks marks = pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, col);
         if (marks == null) {
             marks = new PencilMarks();
             marks.setGameId(gameId);
             marks.setRow(row);
             marks.setCol(col);
-            marks.setMarks(String.valueOf(value));
+            marks.setMarks(markValue);
         } else {
             String existingMarks = marks.getMarks();
-            if (!existingMarks.contains(String.valueOf(value))) {
-                existingMarks += String.valueOf(value);
+            if (!existingMarks.contains(markValue)) {
+                existingMarks += markValue;
             } else {
                 return false;
             }
