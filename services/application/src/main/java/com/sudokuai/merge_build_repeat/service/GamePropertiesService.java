@@ -1,5 +1,6 @@
 package com.sudokuai.merge_build_repeat.service;
 
+import com.sudokuai.merge_build_repeat.exception.NoTemplateException;
 import com.sudokuai.merge_build_repeat.model.GameProperties;
 import com.sudokuai.merge_build_repeat.model.GameTemplate;
 import com.sudokuai.merge_build_repeat.repository.GamePropertiesRepository;
@@ -48,7 +49,8 @@ public class GamePropertiesService {
     public List<List<Integer>> getSolution(UUID gameId) {
         GameProperties properties = repository.findById(gameId).orElse(null);
         if (properties != null) {
-            GameTemplate template = templateRepository.findById(properties.getTemplateId()).orElse(null);
+            GameTemplate template = templateRepository.findById(properties.getTemplateId())
+                    .orElseThrow(() -> new NoTemplateException("Template with ID " + properties.getTemplateId() + " not found"));
             String solution = template.getSolutionData();
             return mapperService.mapToList(solution);
         }
@@ -58,7 +60,8 @@ public class GamePropertiesService {
     public List<List<Integer>> getTemplateData(UUID gameId) {
         GameProperties properties = repository.findById(gameId).orElse(null);
         if (properties != null) {
-            GameTemplate template = templateRepository.findById(properties.getTemplateId()).orElse(null);
+            GameTemplate template = templateRepository.findById(properties.getTemplateId())
+                    .orElseThrow(() -> new NoTemplateException("Template with ID " + properties.getTemplateId() + " not found"));
             String templateData = template.getTemplateData();
             return mapperService.mapToList(templateData);
         }
