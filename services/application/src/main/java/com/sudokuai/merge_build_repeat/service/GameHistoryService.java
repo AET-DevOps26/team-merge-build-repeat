@@ -28,9 +28,9 @@ public class GameHistoryService {
     public List<HistoryRecord> getHistoryRecords(UUID gameId) {
          List<GameHistory> history = repository.findByGameId(gameId);
 
-         if (history == null || history.isEmpty()) {
-         throw new RuntimeException("No history found for gameId: " + gameId);
-         }
+//         if (history == null || history.isEmpty()) {
+//         throw new RuntimeException("No history found for gameId: " + gameId);
+//         }
 
          return history.stream()
          .map(h -> new HistoryRecord(h.getId(), h.getRow(), h.getCol(), h.getValue()))

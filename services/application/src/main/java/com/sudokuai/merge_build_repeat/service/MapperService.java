@@ -14,7 +14,7 @@ public class MapperService {
 
         String normalized = data.trim();
         if (normalized.length() != 81) {
-            throw new IllegalArgumentException("Input must be exactly81 characters long");
+            throw new IllegalArgumentException("Input must be exactly 81 characters long");
         }
 
         List<List<Integer>> grid = new java.util.ArrayList<>(9);
@@ -23,7 +23,7 @@ public class MapperService {
             List<Integer> rowList = new java.util.ArrayList<>(9);
             for (int col = 0; col < 9; col++) {
                 char ch = normalized.charAt(row * 9 + col);
-                if (!Character.isDigit(ch)) {
+                if (ch < '0' || ch > '9') {
                     throw new IllegalArgumentException("Input must contain digits only");
                 }
                 rowList.add(ch - '0');

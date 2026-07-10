@@ -30,7 +30,10 @@ public class GameTemplateService {
     }
 
     public GameResponse getRandomGameByDifficulty(String difficulty) {
-        GameTemplate template = templateRepository.findByDifficulty(difficulty).stream().findAny().get();
+//        GameTemplate template = templateRepository.findByDifficulty(difficulty).stream().findAny().get();
+        GameTemplate template = templateRepository.findByDifficulty(difficulty).stream()
+                .findAny()
+                .orElseThrow(() -> new NoTemplateException("No template found for difficulty: " + difficulty));
         UUID game_id = getGameId();
 
         propertiesRepository.save(new GameProperties(game_id, template.getId(), template.getTemplateData()));

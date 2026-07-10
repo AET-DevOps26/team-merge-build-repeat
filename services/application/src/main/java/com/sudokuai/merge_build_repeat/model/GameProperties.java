@@ -18,7 +18,6 @@ import java.util.UUID;
 @NoArgsConstructor
 public class GameProperties {
     @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
     private UUID id; //gameId
 

@@ -6,6 +6,7 @@ import com.sudokuai.merge_build_repeat.dto.*;
 
 import com.sudokuai.merge_build_repeat.model.GameProperties;
 import com.sudokuai.merge_build_repeat.service.*;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,24 +32,16 @@ public class Controller {
         return "You just created a new template! Check the database to see it.";
     }
 
-//    @GetMapping(value = "/newGame", produces = "text/plain")
-//    public UUID createNewGameID() {
-//        UUID id = System.currentTimeMillis();
-//
-//        return id;
-//    }
-
-
     @PutMapping(value = "/updateGame/{gameId}", produces = "text/plain")
-    public String updateGame(@PathVariable UUID gameId, Move move) {
-        gameHistoryService.saveGameHistory(gameId, move.row(), move.col(), move.value());
-        gamePropertiesService.updateGameProperties(gameId, move.row(), move.col(), move.value());
+    public String updateGame(@PathVariable UUID gameId, @RequestBody Move move) {
+        saveAndUpdate(gameId, move);
         return "You just updated a game! Check the database to see it.";
     }
 
     @GetMapping("/games/random")
     public ResponseEntity<GameResponse> getRandomGame(@RequestParam String difficulty) {
         GameResponse newGame = gameTemplateService.getRandomGameByDifficulty(difficulty);
+        gamePropertiesService.saveNewGameProperties(newGame.gameId(), null, null);
         return ResponseEntity.ok(newGame);
     }
 
@@ -74,7 +67,6 @@ public class Controller {
 
     @PostMapping("/games/{gameId}/history")
     public ResponseEntity<Boolean> updateGameHistory(@PathVariable UUID gameId, @RequestBody Move move) {
-        // Walidacja w serwisie (konwersja indeksów z 1 na 0 w logice biznesowej)
         boolean isValid = gameHistoryService.validateAndSaveMove(gameId, move.row(), move.col(), move.value());
         return ResponseEntity.ok(isValid);
     }
@@ -123,6 +115,12 @@ public class Controller {
     public ResponseEntity<Boolean> verifyGameId(@PathVariable UUID gameId, @RequestParam UUID userId) {
         boolean isValid = accountService.verifyUserGameAccess(gameId, userId);
         return ResponseEntity.ok(isValid);
+    }
+
+    @Transactional
+    public void saveAndUpdate(UUID gameId, Move move) {
+        gameHistoryService.saveGameHistory(gameId, move.row(), move.col(), move.value());
+        gamePropertiesService.updateGameProperties(gameId, move.row(), move.col(), move.value());
     }
 
 }

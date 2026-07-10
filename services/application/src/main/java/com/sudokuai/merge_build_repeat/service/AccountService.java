@@ -18,6 +18,9 @@ public class AccountService {
     AccountRepository repository;
 
     public void createAccount(UUID userId) {
+        if (repository.existsById(userId)) {
+            throw new IllegalArgumentException("Account already exists for userId: " + userId);
+        }
         repository.save(new Account(userId, null));
     }
 

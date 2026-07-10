@@ -18,10 +18,8 @@ public class GamePropertiesService {
     GameTemplateRepository templateRepository;
     MapperService mapperService;
 
-    public UUID saveNewGameProperties(UUID templateId, String currentState) {
-        GameProperties properties = new GameProperties();
-        properties.setTemplateId(templateId);
-        properties.setCurrentState(currentState);
+    public UUID saveNewGameProperties(UUID gameId, UUID templateId, String currentState) {
+        GameProperties properties = new GameProperties(gameId, templateId, currentState);
         repository.save(properties);
         return properties.getId();
     }
@@ -67,7 +65,27 @@ public class GamePropertiesService {
         return null;
     }
 
+//    public void updateGameProperties(UUID gameId, Integer row, Integer col, Integer value) {
+//        GameProperties properties = repository.findById(gameId).orElse(null);
+//        if (properties != null) {
+//            String currentState = properties.getCurrentState();
+//            StringBuilder sb = new StringBuilder(currentState);
+//            sb.setCharAt(row * 9 + col, value.toString().charAt(0));
+//            String result = sb.toString();
+//            properties.setCurrentState(result);
+//            repository.save(properties);
+//        }
+
     public void updateGameProperties(UUID gameId, Integer row, Integer col, Integer value) {
+        if (row == null || col == null || value == null) {
+            throw new IllegalArgumentException("Row, col, and value must not be null");
+        }
+        if (row < 0 || row > 8 || col < 0 || col > 8) {
+            throw new IllegalArgumentException("Row and col must be between 0 and 8");
+        }
+        if (value < 0 || value > 9) {
+            throw new IllegalArgumentException("Value must be between 0 and 9");
+        }
         GameProperties properties = repository.findById(gameId).orElse(null);
         if (properties != null) {
             String currentState = properties.getCurrentState();
