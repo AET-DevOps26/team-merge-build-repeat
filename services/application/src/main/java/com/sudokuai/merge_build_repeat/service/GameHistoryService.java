@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @AllArgsConstructor
@@ -14,15 +15,31 @@ public class GameHistoryService {
 
     GameHistoryRepository repository;
 
-    public void saveGameHistory(Long gameId, Integer row, Integer col, Integer value) {
+    public void saveGameHistory(UUID gameId, Integer row, Integer col, Integer value) {
         repository.save(new GameHistory(gameId, row, col, value));
     }
 
-    public boolean validateAndSaveMove(Long gameId, Integer row, Integer col, Integer value) {
-        return false;
+    public boolean validateAndSaveMove(UUID gameId, Integer row, Integer col, Integer value) {
+        if (gameId == null || row == null || col == null || value == null) {
+            return false;
+        }
+        if (row < 0 || row > 8 || col < 0 || col > 8 || value < 0 || value > 9) {
+            return false;
+        }
+
+        repository.save(new GameHistory(gameId, row, col, value));
+        return true;
     }
 
-    public List<HistoryRecord> getHistoryRecords(Long gameId) {
-        return null;
+    public List<HistoryRecord> getHistoryRecords(UUID gameId) {
+         List<GameHistory> history = repository.findByGameId(gameId);
+
+//         if (history == null || history.isEmpty()) {
+//         throw new RuntimeException("No history found for gameId: " + gameId);
+//         }
+
+         return history.stream()
+         .map(h -> new HistoryRecord(h.getId(), h.getRow(), h.getCol(), h.getValue()))
+         .toList();
     }
 }
