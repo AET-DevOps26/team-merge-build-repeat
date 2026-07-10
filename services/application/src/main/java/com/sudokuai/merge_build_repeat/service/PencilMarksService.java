@@ -4,6 +4,7 @@ import com.sudokuai.merge_build_repeat.model.PencilMarks;
 import com.sudokuai.merge_build_repeat.repository.PencilMarksRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +16,7 @@ public class PencilMarksService {
     PencilMarksRepository pencilMarksRepository;
 
 
+    @Transactional
     public boolean updatePencilMark(UUID gameId, int row, int col, int value) {
         PencilMarks marks = pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, col);
         if (marks == null) {
@@ -36,6 +38,7 @@ public class PencilMarksService {
         return true;
     }
 
+    @Transactional
     public void deletePencilMark(UUID gameId, int row, int column, int value) {
         PencilMarks marks = pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, column);
         if (marks != null) {

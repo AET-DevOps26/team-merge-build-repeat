@@ -34,4 +34,7 @@ public class PencilMarks {
     @Column
     private String marks;
 
+    @Version
+    private Long version;
+
 }
