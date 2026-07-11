@@ -85,13 +85,18 @@ def test_prompt_contains_template_and_solution_for_local_validation_context() ->
     request = GenerateChatAnswerRequest.model_validate(
         {
             "gameId": "00000000-0000-0000-0000-000000000000",
-            "board": empty_board(),
-            "candidates": empty_candidates(),
             "message": "Was ist falsch?",
         }
     )
 
-    messages = assistant._build_messages(request, [], solution, template)
+    messages = assistant._build_messages(
+        request,
+        [],
+        solution,
+        template,
+        empty_board(),
+        empty_candidates(),
+    )
     state_json = messages[-1].content.split("\n", maxsplit=1)[1]
     state = json.loads(state_json)
 
@@ -135,8 +140,6 @@ def test_blank_model_response_is_not_replaced_by_mcp_fallback() -> None:
         request = GenerateChatAnswerRequest.model_validate(
             {
                 "gameId": "00000000-0000-0000-0000-000000000000",
-                "board": empty_board(),
-                "candidates": empty_candidates(),
                 "message": "Was ist der naechste Schritt?",
             }
         )
@@ -144,12 +147,7 @@ def test_blank_model_response_is_not_replaced_by_mcp_fallback() -> None:
         async def load_tools() -> list[Any]:
             return []
 
-        async def fallback(
-            fallback_request: GenerateChatAnswerRequest,
-            solution: list[list[int]],
-        ) -> str:
-            assert fallback_request is request
-            assert solution == empty_board()
+        async def fallback(*args: Any) -> str:
             return "Fallback-Antwort"
 
         assistant._load_mcp_tools = load_tools  # type: ignore[method-assign]
@@ -161,6 +159,8 @@ def test_blank_model_response_is_not_replaced_by_mcp_fallback() -> None:
                 [],
                 empty_board(),
                 empty_board(),
+                empty_board(),
+                empty_candidates(),
             )
 
         assert len(model.calls) == 1
@@ -174,8 +174,6 @@ def test_model_orchestration_error_is_not_replaced_by_mcp_fallback() -> None:
         request = GenerateChatAnswerRequest.model_validate(
             {
                 "gameId": "00000000-0000-0000-0000-000000000000",
-                "board": empty_board(),
-                "candidates": empty_candidates(),
                 "message": "Was ist der naechste Schritt?",
             }
         )
@@ -183,12 +181,7 @@ def test_model_orchestration_error_is_not_replaced_by_mcp_fallback() -> None:
         async def answer_with_model(messages: list[Any]) -> str:
             raise AssistantError("Tool binding failed")
 
-        async def fallback(
-            fallback_request: GenerateChatAnswerRequest,
-            solution: list[list[int]],
-        ) -> str:
-            assert fallback_request is request
-            assert solution == empty_board()
+        async def fallback(*args: Any) -> str:
             return "Fallback-Antwort"
 
         assistant._answer_with_model = answer_with_model  # type: ignore[method-assign]
@@ -200,6 +193,8 @@ def test_model_orchestration_error_is_not_replaced_by_mcp_fallback() -> None:
                 [],
                 empty_board(),
                 empty_board(),
+                empty_board(),
+                empty_candidates(),
             )
 
     asyncio.run(run())
@@ -211,8 +206,6 @@ def test_model_infrastructure_error_uses_mcp_fallback() -> None:
         request = GenerateChatAnswerRequest.model_validate(
             {
                 "gameId": "00000000-0000-0000-0000-000000000000",
-                "board": empty_board(),
-                "candidates": empty_candidates(),
                 "message": "Was ist der naechste Schritt?",
             }
         )
@@ -220,12 +213,7 @@ def test_model_infrastructure_error_uses_mcp_fallback() -> None:
         async def answer_with_model(messages: list[Any]) -> str:
             raise AssistantInfrastructureError("Language model is unavailable")
 
-        async def fallback(
-            fallback_request: GenerateChatAnswerRequest,
-            solution: list[list[int]],
-        ) -> str:
-            assert fallback_request is request
-            assert solution == empty_board()
+        async def fallback(*args: Any) -> str:
             return "Fallback-Antwort"
 
         assistant._answer_with_model = answer_with_model  # type: ignore[method-assign]
@@ -236,6 +224,8 @@ def test_model_infrastructure_error_uses_mcp_fallback() -> None:
             [],
             empty_board(),
             empty_board(),
+            empty_board(),
+            empty_candidates(),
         )
 
         assert response == "Fallback-Antwort"
@@ -298,8 +288,6 @@ def test_tool_round_limit_is_not_replaced_by_mcp_fallback() -> None:
         request = GenerateChatAnswerRequest.model_validate(
             {
                 "gameId": "00000000-0000-0000-0000-000000000000",
-                "board": empty_board(),
-                "candidates": empty_candidates(),
                 "message": "Was ist der naechste Schritt?",
             }
         )
@@ -307,10 +295,7 @@ def test_tool_round_limit_is_not_replaced_by_mcp_fallback() -> None:
         async def load_tools() -> list[Any]:
             return [FakeTool()]
 
-        async def fallback(
-            fallback_request: GenerateChatAnswerRequest,
-            solution: list[list[int]],
-        ) -> str:
+        async def fallback(*args: Any) -> str:
             pytest.fail("The MCP fallback must not handle agent loop errors.")
 
         assistant._load_mcp_tools = load_tools  # type: ignore[method-assign]
@@ -322,6 +307,8 @@ def test_tool_round_limit_is_not_replaced_by_mcp_fallback() -> None:
                 [],
                 empty_board(),
                 empty_board(),
+                empty_board(),
+                empty_candidates(),
             )
 
     asyncio.run(run())

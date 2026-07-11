@@ -9,6 +9,8 @@ from genai_service.schemas import (
     GameTemplateResponse,
     JsonBoard,
     JsonBoardResponse,
+    JsonCandidateBoard,
+    JsonCandidateBoardResponse,
 )
 
 
@@ -55,6 +57,26 @@ class GameServiceClient:
         if isinstance(data, list):
             return JsonBoardResponse.model_validate(data).root
         return GameTemplateResponse.model_validate(data).template
+
+    async def get_state(self, game_id: UUID, authorization: str) -> JsonBoard:
+        response = await self._request(
+            "GET",
+            f"games/{game_id}/state",
+            authorization=authorization,
+        )
+        return JsonBoardResponse.model_validate(response.json()).root
+
+    async def get_pencil_marks(
+        self,
+        game_id: UUID,
+        authorization: str,
+    ) -> JsonCandidateBoard:
+        response = await self._request(
+            "GET",
+            f"games/{game_id}/pencil-marks",
+            authorization=authorization,
+        )
+        return JsonCandidateBoardResponse.model_validate(response.json()).root
 
     async def aclose(self) -> None:
         if self._owns_client:

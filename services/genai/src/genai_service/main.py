@@ -1,4 +1,5 @@
 import os
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
@@ -107,8 +108,12 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
             ) from exc
 
         try:
-            solution = await game_client.get_solution(payload.game_id, authorization)
-            template = await game_client.get_template(payload.game_id, authorization)
+            solution, template, board, candidates = await asyncio.gather(
+                game_client.get_solution(payload.game_id, authorization),
+                game_client.get_template(payload.game_id, authorization),
+                game_client.get_state(payload.game_id, authorization),
+                game_client.get_pencil_marks(payload.game_id, authorization),
+            )
         except GameServiceError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -121,6 +126,8 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
                 chat.messages,
                 solution,
                 template,
+                board,
+                candidates,
             )
         except AssistantError as exc:
             raise HTTPException(

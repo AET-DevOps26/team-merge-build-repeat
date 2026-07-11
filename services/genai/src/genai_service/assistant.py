@@ -13,7 +13,12 @@ from langchain_core.messages import (
 )
 
 from genai_service.mcp_server import mcp
-from genai_service.schemas import ChatMessage, GenerateChatAnswerRequest, JsonBoard
+from genai_service.schemas import (
+    ChatMessage,
+    GenerateChatAnswerRequest,
+    JsonBoard,
+    JsonCandidateBoard,
+)
 from genai_service.settings import Settings
 
 
@@ -32,6 +37,8 @@ class SudokuAssistant(Protocol):
         history: list[ChatMessage],
         solution: JsonBoard,
         template: JsonBoard,
+        board: JsonBoard,
+        candidates: JsonCandidateBoard,
     ) -> str:
         pass
 
@@ -54,19 +61,23 @@ class LangChainSudokuAssistant:
         history: list[ChatMessage],
         solution: JsonBoard,
         template: JsonBoard,
+        board: JsonBoard,
+        candidates: JsonCandidateBoard,
     ) -> str:
-        messages = self._build_messages(request, history, solution, template)
+        messages = self._build_messages(
+            request, history, solution, template, board, candidates
+        )
 
         if self._chat_model is not None:
             try:
                 response = await self._answer_with_model(messages)
             except AssistantInfrastructureError:
-                return await self._answer_with_mcp_fallback(request, solution)
+                return await self._answer_with_mcp_fallback(board, candidates, solution)
             if response:
                 return response
             raise AssistantError("Assistant returned an empty response.")
 
-        return await self._answer_with_mcp_fallback(request, solution)
+        return await self._answer_with_mcp_fallback(board, candidates, solution)
 
     def _build_messages(
         self,
@@ -74,6 +85,8 @@ class LangChainSudokuAssistant:
         history: list[ChatMessage],
         solution: JsonBoard,
         template: JsonBoard,
+        board: JsonBoard,
+        candidates: JsonCandidateBoard,
     ) -> list[BaseMessage]:
         messages: list[BaseMessage] = [
             SystemMessage(
@@ -92,10 +105,10 @@ class LangChainSudokuAssistant:
                 messages.append(HumanMessage(content=message.content))
 
         state = {
-            "board": request.board,
+            "board": board,
             "template": template,
             "solution": solution,
-            "candidates": request.candidates,
+            "candidates": candidates,
             "question": request.message,
         }
         messages.append(
@@ -213,16 +226,17 @@ class LangChainSudokuAssistant:
 
     async def _answer_with_mcp_fallback(
         self,
-        request: GenerateChatAnswerRequest,
+        board: JsonBoard,
+        candidates: JsonCandidateBoard,
         solution: JsonBoard,
     ) -> str:
         try:
             result = await mcp.call_tool(
                 "find_next_step",
                 {
-                    "board": request.board,
+                    "board": board,
                     "solution": solution,
-                    "candidate_board": request.candidates,
+                    "candidate_board": candidates,
                 },
             )
         except Exception as exc:

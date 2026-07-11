@@ -10,8 +10,6 @@ interface Message {
 
 interface GameChatProps {
   gameId: string
-  board: number[][]
-  candidates: number[][][]
   accessToken: string
 }
 
@@ -21,8 +19,6 @@ function now(): string {
 
 async function fetchAnswer(
   gameId: string,
-  board: number[][],
-  candidates: number[][][],
   message: string,
   accessToken: string,
 ): Promise<string> {
@@ -32,14 +28,14 @@ async function fetchAnswer(
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ gameId, board, candidates, message }),
+    body: JSON.stringify({ gameId, message }),
   })
   if (!res.ok) throw new Error(`Assistant request failed: ${res.status}`)
   const data = await res.json()
   return data.assistantResponse
 }
 
-export function GameChat({ gameId, board, candidates, accessToken }: GameChatProps) {
+export function GameChat({ gameId, accessToken }: GameChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -66,7 +62,7 @@ export function GameChat({ gameId, board, candidates, accessToken }: GameChatPro
     setLoading(true)
 
     try {
-      const answer = await fetchAnswer(gameId, board, candidates, trimmed, accessToken)
+      const answer = await fetchAnswer(gameId, trimmed, accessToken)
       setMessages(prev => [...prev, {
         id: `${Date.now()}-assistant`,
         role: "assistant",

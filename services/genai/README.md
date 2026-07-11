@@ -38,37 +38,15 @@ Request body:
 ```json
 {
   "gameId": "00000000-0000-0000-0000-000000000000",
-  "board": [
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0]
-  ],
-  "candidates": [
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []]
-  ],
   "message": "What is the next step?"
 }
 ```
 
-`board` must be a 9x9 integer grid using `0` for empty cells. `candidates`
-must be a 9x9 grid where each cell contains candidate integers. The service
-reads the existing chat from the chat database service, generates an assistant
-answer using the Sudoku MCP tools, then stores the user message and assistant
-response.
+The service retrieves the current board from `GET /games/{gameId}/state` and
+the candidates from `GET /games/{gameId}/pencil-marks` on `GAME_SERVICE_URL`.
+It reads the existing chat from the chat database service, generates an
+assistant answer using the Sudoku MCP tools, then stores the user message and
+assistant response.
 
 Configuration:
 

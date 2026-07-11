@@ -280,7 +280,7 @@ export default function GamePage() {
       <main className="flex-1 flex flex-row items-stretch px-4 py-4 pb-32 gap-4 min-h-0 overflow-hidden">
         <div className="flex-1 hidden md:flex flex-col min-h-0">
           {accessToken && (
-            <GameChat gameId={GAME_ID} board={grid} candidates={pencilMarks} accessToken={accessToken} />
+            <GameChat gameId={GAME_ID} accessToken={accessToken} />
           )}
         </div>
 
