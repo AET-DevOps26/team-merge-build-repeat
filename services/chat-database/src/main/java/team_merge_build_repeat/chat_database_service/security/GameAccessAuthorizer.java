@@ -21,8 +21,14 @@ public class GameAccessAuthorizer {
 			throw new UnauthorizedException("Authentication is required or the provided token is invalid.");
 		}
 
-		String bearerToken = jwtAuthentication.getToken().getTokenValue();
-		return switch (verificationClient.verify(bearerToken, gameId)) {
+		UUID userId;
+		try {
+			userId = UUID.fromString(jwtAuthentication.getToken().getSubject());
+		} catch (IllegalArgumentException exception) {
+			throw new UnauthorizedException("Authentication is required or the provided token is invalid.");
+		}
+
+		return switch (verificationClient.verify(userId, gameId)) {
 			case ALLOWED -> true;
 			case FORBIDDEN -> throw new ForbiddenException("The authenticated user is not allowed to access this game chat.");
 			case UNAUTHORIZED -> throw new UnauthorizedException("Authentication is required or the provided token is invalid.");

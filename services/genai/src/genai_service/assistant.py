@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any, Protocol
 
+import httpx
 from langchain_core.messages import (
     AIMessage,
     BaseMessage,
@@ -18,6 +19,10 @@ from genai_service.settings import Settings
 
 class AssistantError(RuntimeError):
     pass
+
+
+class AssistantInfrastructureError(AssistantError):
+    """Raised when an LLM or MCP dependency is unavailable."""
 
 
 class SudokuAssistant(Protocol):
@@ -53,7 +58,13 @@ class LangChainSudokuAssistant:
         messages = self._build_messages(request, history, solution, template)
 
         if self._chat_model is not None:
-            return await self._answer_with_model(messages)
+            try:
+                response = await self._answer_with_model(messages)
+            except AssistantInfrastructureError:
+                return await self._answer_with_mcp_fallback(request, solution)
+            if response:
+                return response
+            raise AssistantError("Assistant returned an empty response.")
 
         return await self._answer_with_mcp_fallback(request, solution)
 
@@ -108,7 +119,14 @@ class LangChainSudokuAssistant:
 
             tools_by_name = {tool.name: tool for tool in tools}
             for _ in range(self._MAX_TOOL_ROUNDS):
-                response = await model.ainvoke(messages)
+                try:
+                    response = await model.ainvoke(messages)
+                except Exception as exc:
+                    if self._is_infrastructure_error(exc):
+                        raise AssistantInfrastructureError(
+                            "Language model is unavailable."
+                        ) from exc
+                    raise AssistantError("Language model request failed.") from exc
                 tool_calls = getattr(response, "tool_calls", [])
                 if not tool_calls:
                     return self._response_content(response)
@@ -132,9 +150,42 @@ class LangChainSudokuAssistant:
         except Exception as exc:
             if isinstance(exc, AssistantError):
                 raise
+            if self._is_infrastructure_error(exc):
+                raise AssistantInfrastructureError(
+                    "Sudoku MCP service is unavailable."
+                ) from exc
             raise AssistantError("Assistant orchestration failed.") from exc
 
         raise AssistantError("Assistant reached the maximum number of tool rounds.")
+
+    @staticmethod
+    def _is_infrastructure_error(exc: Exception) -> bool:
+        """Recognize transport failures without masking agent or tool errors."""
+        current: BaseException | None = exc
+        while current is not None:
+            if isinstance(current, httpx.HTTPStatusError):
+                status_code = current.response.status_code
+                if status_code == 408 or status_code == 429 or status_code >= 500:
+                    return True
+            elif isinstance(
+                current,
+                (httpx.TransportError, OSError, TimeoutError),
+            ):
+                return True
+            status_code = getattr(current, "status_code", None)
+            if status_code == 408 or status_code == 429 or (
+                isinstance(status_code, int) and status_code >= 500
+            ):
+                return True
+            if type(current).__name__ in {
+                "APIConnectionError",
+                "APITimeoutError",
+                "InternalServerError",
+                "ServiceUnavailableError",
+            }:
+                return True
+            current = current.__cause__ or current.__context__
+        return False
 
     @staticmethod
     def _response_content(response: Any) -> str:

@@ -7,7 +7,11 @@ from typing import Any
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from genai_service.assistant import AssistantError, LangChainSudokuAssistant
+from genai_service.assistant import (
+    AssistantError,
+    AssistantInfrastructureError,
+    LangChainSudokuAssistant,
+)
 from genai_service.schemas import GenerateChatAnswerRequest
 from genai_service.settings import Settings
 
@@ -119,6 +123,126 @@ def test_model_loop_executes_mcp_tool_and_returns_follow_up_response() -> None:
     asyncio.run(run())
 
 
+def test_blank_model_response_is_not_replaced_by_mcp_fallback() -> None:
+    class BlankModel(FakeModel):
+        async def ainvoke(self, messages: list[Any]) -> AIMessage:
+            self.calls.append(list(messages))
+            return AIMessage(content="   ")
+
+    async def run() -> None:
+        model = BlankModel()
+        assistant = LangChainSudokuAssistant(settings(), chat_model=model)
+        request = GenerateChatAnswerRequest.model_validate(
+            {
+                "gameId": "00000000-0000-0000-0000-000000000000",
+                "board": empty_board(),
+                "candidates": empty_candidates(),
+                "message": "Was ist der naechste Schritt?",
+            }
+        )
+
+        async def load_tools() -> list[Any]:
+            return []
+
+        async def fallback(
+            fallback_request: GenerateChatAnswerRequest,
+            solution: list[list[int]],
+        ) -> str:
+            assert fallback_request is request
+            assert solution == empty_board()
+            return "Fallback-Antwort"
+
+        assistant._load_mcp_tools = load_tools  # type: ignore[method-assign]
+        assistant._answer_with_mcp_fallback = fallback  # type: ignore[method-assign]
+
+        with pytest.raises(AssistantError, match="empty response"):
+            await assistant.answer(
+                request,
+                [],
+                empty_board(),
+                empty_board(),
+            )
+
+        assert len(model.calls) == 1
+
+    asyncio.run(run())
+
+
+def test_model_orchestration_error_is_not_replaced_by_mcp_fallback() -> None:
+    async def run() -> None:
+        assistant = LangChainSudokuAssistant(settings(), chat_model=FakeModel())
+        request = GenerateChatAnswerRequest.model_validate(
+            {
+                "gameId": "00000000-0000-0000-0000-000000000000",
+                "board": empty_board(),
+                "candidates": empty_candidates(),
+                "message": "Was ist der naechste Schritt?",
+            }
+        )
+
+        async def answer_with_model(messages: list[Any]) -> str:
+            raise AssistantError("Tool binding failed")
+
+        async def fallback(
+            fallback_request: GenerateChatAnswerRequest,
+            solution: list[list[int]],
+        ) -> str:
+            assert fallback_request is request
+            assert solution == empty_board()
+            return "Fallback-Antwort"
+
+        assistant._answer_with_model = answer_with_model  # type: ignore[method-assign]
+        assistant._answer_with_mcp_fallback = fallback  # type: ignore[method-assign]
+
+        with pytest.raises(AssistantError, match="Tool binding failed"):
+            await assistant.answer(
+                request,
+                [],
+                empty_board(),
+                empty_board(),
+            )
+
+    asyncio.run(run())
+
+
+def test_model_infrastructure_error_uses_mcp_fallback() -> None:
+    async def run() -> None:
+        assistant = LangChainSudokuAssistant(settings(), chat_model=FakeModel())
+        request = GenerateChatAnswerRequest.model_validate(
+            {
+                "gameId": "00000000-0000-0000-0000-000000000000",
+                "board": empty_board(),
+                "candidates": empty_candidates(),
+                "message": "Was ist der naechste Schritt?",
+            }
+        )
+
+        async def answer_with_model(messages: list[Any]) -> str:
+            raise AssistantInfrastructureError("Language model is unavailable")
+
+        async def fallback(
+            fallback_request: GenerateChatAnswerRequest,
+            solution: list[list[int]],
+        ) -> str:
+            assert fallback_request is request
+            assert solution == empty_board()
+            return "Fallback-Antwort"
+
+        assistant._answer_with_model = answer_with_model  # type: ignore[method-assign]
+        assistant._answer_with_mcp_fallback = fallback  # type: ignore[method-assign]
+
+        response = await assistant.answer(
+            request,
+            [],
+            empty_board(),
+            empty_board(),
+        )
+
+        assert response == "Fallback-Antwort"
+
+    asyncio.run(run())
+
+
 def test_model_loop_stops_after_maximum_tool_rounds() -> None:
     class ToolCallingModel(FakeModel):
         async def ainvoke(self, messages: list[Any]) -> AIMessage:
@@ -147,5 +271,57 @@ def test_model_loop_stops_after_maximum_tool_rounds() -> None:
             await assistant._answer_with_model([HumanMessage(content="Help")])
 
         assert len(model.calls) == assistant._MAX_TOOL_ROUNDS
+
+    asyncio.run(run())
+
+
+def test_tool_round_limit_is_not_replaced_by_mcp_fallback() -> None:
+    class ToolCallingModel(FakeModel):
+        async def ainvoke(self, messages: list[Any]) -> AIMessage:
+            self.calls.append(list(messages))
+            return AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "find_next_step",
+                        "args": {},
+                        "id": f"call-{len(self.calls)}",
+                    }
+                ],
+            )
+
+    async def run() -> None:
+        assistant = LangChainSudokuAssistant(
+            settings(),
+            chat_model=ToolCallingModel(),
+        )
+        request = GenerateChatAnswerRequest.model_validate(
+            {
+                "gameId": "00000000-0000-0000-0000-000000000000",
+                "board": empty_board(),
+                "candidates": empty_candidates(),
+                "message": "Was ist der naechste Schritt?",
+            }
+        )
+
+        async def load_tools() -> list[Any]:
+            return [FakeTool()]
+
+        async def fallback(
+            fallback_request: GenerateChatAnswerRequest,
+            solution: list[list[int]],
+        ) -> str:
+            pytest.fail("The MCP fallback must not handle agent loop errors.")
+
+        assistant._load_mcp_tools = load_tools  # type: ignore[method-assign]
+        assistant._answer_with_mcp_fallback = fallback  # type: ignore[method-assign]
+
+        with pytest.raises(AssistantError, match="maximum number of tool rounds"):
+            await assistant.answer(
+                request,
+                [],
+                empty_board(),
+                empty_board(),
+            )
 
     asyncio.run(run())
