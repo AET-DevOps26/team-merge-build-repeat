@@ -184,6 +184,17 @@ services:
       chat-database:
         condition: service_healthy
 
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - grafana_data:/var/lib/grafana
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:3000" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 secrets:
   logos_key:
     file: ${LOGOS_KEY_FILE:-./secrets/logos_key}
@@ -199,3 +210,4 @@ volumes:
   chat-database-postgres-data:
   ollama-data:
   prometheus_data:
+  grafana_data:
