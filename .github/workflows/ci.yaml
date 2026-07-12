@@ -1,0 +1,37 @@
+name: Java CI with Gradle
+
+on:
+  push:
+    branches: [ "main" , "klaudia/*" ]
+  pull_request:
+    branches: [ "main" , "klaudia/*"]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run unit tests
+        run: ./gradlew test
+
+      - name: Publish Test Report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: gradle-test-reports
+          path: build/reports/tests/test/
