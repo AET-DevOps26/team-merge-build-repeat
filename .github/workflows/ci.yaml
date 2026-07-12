@@ -1,62 +1,100 @@
-name: Java CI with Gradle
+name: Backend CI
 
 on:
   push:
-    branches: [ "test/*" ]
+    branches: ["test/*"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+
+permissions:
+  contents: read
 
 jobs:
-  build-and-test:
+  spring-tests:
+    name: Spring Boot - ${{ matrix.service }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: application
+            directory: services/application
+            java-version: "25"
+
+          - service: chat
+            directory: services/chat-database
+            java-version: "25"
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
-      - name: Set up JDK 25
-        uses: actions/setup-java@v4
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v5
         with:
-          java-version: '25'
-          distribution: 'temurin'
+          java-version: ${{ matrix.java-version }}
+          distribution: temurin
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          build-root-directory: services/application
+        uses: gradle/actions/setup-gradle@v6
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./services/application/gradlew
+      - name: Grant execute permission for Gradle wrapper
+        run: chmod +x ./gradlew
+        working-directory: ${{ matrix.directory }}
 
       - name: Run unit tests
         run: ./gradlew test
-        working-directory: services/application
+        working-directory: ${{ matrix.directory }}
 
-      - name: Publish Test Report
+      - name: Publish test report
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: gradle-test-reports
-          path: services/application/build/reports/tests/test/
+          name: gradle-test-report-${{ matrix.service }}
+          path: ${{ matrix.directory }}/build/reports/tests/test/
+          if-no-files-found: ignore
+
+
+  python-tests:
+    name: Python - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: genai
+            directory: services/genai
+            python-version: "3.12"
+
+          - service: game-engine
+            directory: services/game-engine
+            python-version: "3.12"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v8
         with:
           version: "latest"
           enable-cache: true
-          cache-dependency-glob: "services/genai/uv.lock"
+          cache-dependency-glob: ${{ matrix.directory }}/uv.lock
+          cache-suffix: ${{ matrix.service }}
 
-      - name: Set up Python
-        run: uv python install 3.12
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
 
       - name: Install Python dependencies
         run: uv sync --frozen
-        working-directory: services/genai
+        working-directory: ${{ matrix.directory }}
 
       - name: Run Python unit tests
         run: uv run pytest
-        working-directory: services/genai
+        working-directory: ${{ matrix.directory }}
