@@ -21,9 +21,14 @@ public class GameAccessAuthorizer {
 			throw new UnauthorizedException("Authentication is required or the provided token is invalid.");
 		}
 
+		String subject = jwtAuthentication.getToken().getSubject();
+		if (subject == null) {
+			throw new UnauthorizedException("Authentication is required or the provided token is invalid.");
+		}
+
 		UUID userId;
 		try {
-			userId = UUID.fromString(jwtAuthentication.getToken().getSubject());
+			userId = UUID.fromString(subject);
 		} catch (IllegalArgumentException exception) {
 			throw new UnauthorizedException("Authentication is required or the provided token is invalid.");
 		}
