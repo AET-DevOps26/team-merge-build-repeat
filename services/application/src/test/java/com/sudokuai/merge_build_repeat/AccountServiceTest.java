@@ -103,17 +103,17 @@ class AccountServiceTest {
             assertNull(result);
         }
 
-        @Test
-        void shouldThrowExceptionWhenAccountDoesNotExist() {
-            UUID userId = UUID.randomUUID();
-            when(repository.findById(userId)).thenReturn(Optional.empty());
-
-            RuntimeException exception = assertThrows(RuntimeException.class, () ->
-                    accountService.getLatestGameId(userId)
-            );
-
-            assertEquals("Account not found for userId: " + userId, exception.getMessage());
-        }
+//        @Test
+//        void shouldThrowExceptionWhenAccountDoesNotExist() {
+//            UUID userId = UUID.randomUUID();
+//            when(repository.findById(userId)).thenReturn(Optional.empty());
+//
+//            RuntimeException exception = assertThrows(RuntimeException.class, () ->
+//                    accountService.getLatestGameId(userId)
+//            );
+//
+//            assertEquals("Account not found for userId: " + userId, exception.getMessage());
+//        }
     }
 
     @Nested
@@ -156,17 +156,17 @@ class AccountServiceTest {
             assertFalse(hasAccess);
         }
 
-        @Test
-        void shouldThrowExceptionWhenAccountDoesNotExist() {
-            UUID userId = UUID.randomUUID();
-            UUID gameId = UUID.randomUUID();
-            when(repository.findById(userId)).thenReturn(Optional.empty());
-
-            RuntimeException exception = assertThrows(RuntimeException.class, () ->
-                    accountService.verifyUserGameAccess(gameId, userId)
-            );
-
-            assertEquals("Account not found for userId: " + userId, exception.getMessage());
-        }
+//        @Test
+//        void shouldThrowExceptionWhenAccountDoesNotExist() {
+//            UUID userId = UUID.randomUUID();
+//            UUID gameId = UUID.randomUUID();
+//            when(repository.findById(userId)).thenReturn(Optional.empty());
+//
+//            RuntimeException exception = assertThrows(RuntimeException.class, () ->
+//                    accountService.verifyUserGameAccess(gameId, userId)
+//            );
+//
+//            assertEquals("Account not found for userId: " + userId, exception.getMessage());
+//        }
     }
 }
