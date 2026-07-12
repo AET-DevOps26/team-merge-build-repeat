@@ -60,6 +60,7 @@ services:
 
   application-database:
     image: postgres:17
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
     environment:
       POSTGRES_DB: ${APP_DATABASE_NAME:-game_database}
       POSTGRES_USER: ${APP_DATABASE_USER:-postgres}
@@ -121,6 +122,7 @@ services:
 
   chat-database:
     image: postgres:17
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
     environment:
       POSTGRES_DB: ${CHAT_DATABASE_NAME:-chat_database}
       POSTGRES_USER: ${CHAT_DATABASE_USER:-chat_user}
@@ -166,6 +168,10 @@ services:
       DATA_SOURCE_URI: "application-database:5432/${APP_DATABASE_NAME:-game_database}?sslmode=disable"
       DATA_SOURCE_USER: "${APP_DATABASE_USER:-postgres}"
       DATA_SOURCE_PASS_FILE: "/run/secrets/app_database_password"
+      PG_EXPORTER_EXTEND_QUERY_LRU: "true"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres_exporter/queries.yaml"
+    volumes:
+      - ./services/prometheus/pg_stat_statements_queries.yaml:/etc/postgres_exporter/queries.yaml:ro
     secrets:
       - app_database_password
     depends_on:
@@ -178,6 +184,10 @@ services:
       DATA_SOURCE_URI: "chat-database:5432/${CHAT_DATABASE_NAME:-chat_database}?sslmode=disable"
       DATA_SOURCE_USER: "${CHAT_DATABASE_USER:-chat_user}"
       DATA_SOURCE_PASS_FILE: "/run/secrets/chat_database_password"
+      PG_EXPORTER_EXTEND_QUERY_LRU: "true"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres_exporter/queries.yaml"
+    volumes:
+      - ./services/prometheus/pg_stat_statements_queries.yaml:/etc/postgres_exporter/queries.yaml:ro
     secrets:
       - chat_database_password
     depends_on:
