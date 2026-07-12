@@ -4,15 +4,19 @@ on:
   push:
     branches: [ "main" , "klaudia/*" ]
   pull_request:
-    branches: [ "main" , "klaudia/*"]
+    branches: [ "main" , "klaudia/*" ]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 25
         uses: actions/setup-java@v4
