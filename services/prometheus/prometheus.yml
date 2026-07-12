@@ -11,7 +11,6 @@ scrape_configs:
     static_configs:
       - targets: [ 'caddy:2019' ]
 
-
   - job_name: 'spring-services'
     metrics_path: '/actuator/prometheus'
     static_configs:
@@ -19,12 +18,18 @@ scrape_configs:
           - 'application:8080'
           - 'chat:8080'
 
-  - job_name: 'fastapi-services'
+  - job_name: 'fastapi-genai'
     metrics_path: '/metrics'
     scrape_interval: 10s
     static_configs:
       - targets:
           - 'genai:8080'
+
+  - job_name: 'fastapi-game-engine'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    static_configs:
+      - targets:
           - 'game-engine:8080'
 
   - job_name: 'postgres-databases'
