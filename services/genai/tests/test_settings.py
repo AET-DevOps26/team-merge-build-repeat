@@ -41,3 +41,11 @@ def test_load_settings_normalizes_root_path_slash(monkeypatch) -> None:
     settings = load_settings()
 
     assert settings.root_path == ""
+
+
+def test_load_settings_enables_debug_logging(monkeypatch) -> None:
+    monkeypatch.setenv("GENAI_DEBUG", "true")
+
+    settings = load_settings()
+
+    assert settings.debug is True

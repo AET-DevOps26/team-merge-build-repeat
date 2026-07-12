@@ -15,15 +15,20 @@ public class DefaultGameAccessVerificationClient implements GameAccessVerificati
 	}
 
 	@Override
-	public GameAccessVerificationResult verify(String bearerToken, UUID gameId) {
+	public GameAccessVerificationResult verify(UUID userId, UUID gameId) {
 		try {
-			return applicationServiceRestClient.post()
-					.uri("/v1/games/{gameId}/verify", gameId)
-					.header("Authorization", "Bearer " + bearerToken)
+			return applicationServiceRestClient.get()
+					.uri(uriBuilder -> uriBuilder
+							.path("/games/{gameId}/verify")
+							.queryParam("userId", userId)
+							.build(gameId))
 					.exchange((request, response) -> switch (response.getStatusCode().value()) {
-						case 204 -> GameAccessVerificationResult.ALLOWED;
+						case 200 -> Boolean.TRUE.equals(response.bodyTo(Boolean.class))
+								? GameAccessVerificationResult.ALLOWED
+								: GameAccessVerificationResult.FORBIDDEN;
 						case 401 -> GameAccessVerificationResult.UNAUTHORIZED;
 						case 403 -> GameAccessVerificationResult.FORBIDDEN;
+						case 404 -> GameAccessVerificationResult.FORBIDDEN;
 						default -> throw new GameVerificationUnavailableException(
 								"The game access verification service returned " + response.getStatusCode() + ".", null);
 					});

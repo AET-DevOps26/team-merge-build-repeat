@@ -19,12 +19,37 @@ def empty_candidates() -> list[list[list[int]]]:
 
 
 class FakeGameClient:
+    def __init__(self) -> None:
+        self.loaded_template = False
+
     async def get_solution(
         self,
         game_id: UUID,
         authorization: str,
     ) -> list[list[int]]:
         return empty_board()
+
+    async def get_template(
+        self,
+        game_id: UUID,
+        authorization: str,
+    ) -> list[list[int]]:
+        self.loaded_template = True
+        return empty_board()
+
+    async def get_state(
+        self,
+        game_id: UUID,
+        authorization: str,
+    ) -> list[list[int]]:
+        return empty_board()
+
+    async def get_pencil_marks(
+        self,
+        game_id: UUID,
+        authorization: str,
+    ) -> list[list[list[int]]]:
+        return empty_candidates()
 
 
 class FakeChatClient:
@@ -72,6 +97,9 @@ class FakeAssistant:
         request: GenerateChatAnswerRequest,
         history: list,
         solution: list[list[int]],
+        template: list[list[int]],
+        board: list[list[int]],
+        candidates: list[list[list[int]]],
     ) -> str:
         self.history_size = len(history)
         return self.response
@@ -83,6 +111,9 @@ class FailingAssistant:
         request: GenerateChatAnswerRequest,
         history: list,
         solution: list[list[int]],
+        template: list[list[int]],
+        board: list[list[int]],
+        candidates: list[list[list[int]]],
     ) -> str:
         raise AssistantError("Assistant orchestration failed.")
 
@@ -92,9 +123,10 @@ def test_answer_chat_uses_history_and_stores_user_and_assistant_messages() -> No
         app = create_app()
         game_id = uuid4()
         chat_client = FakeChatClient()
+        game_client = FakeGameClient()
         assistant = FakeAssistant()
         app.state.chat_client = chat_client
-        app.state.game_client = FakeGameClient()
+        app.state.game_client = game_client
         app.state.assistant = assistant
         transport = httpx.ASGITransport(app=app)
 
@@ -107,8 +139,6 @@ def test_answer_chat_uses_history_and_stores_user_and_assistant_messages() -> No
                 headers={"Authorization": "Bearer test-token"},
                 json={
                     "gameId": str(game_id),
-                    "board": empty_board(),
-                    "candidates": empty_candidates(),
                     "message": "Was soll ich als naechstes tun?",
                 },
             )
@@ -120,6 +150,7 @@ def test_answer_chat_uses_history_and_stores_user_and_assistant_messages() -> No
             "assistantResponse": "Setze 5 in Zeile 1, Spalte 1.",
         }
         assert chat_client.authorization == "Bearer test-token"
+        assert game_client.loaded_template is True
         assert assistant.history_size == 1
         assert chat_client.created_messages == [
             (
@@ -151,8 +182,6 @@ def test_answer_chat_requires_bearer_auth() -> None:
                 "/v1/chat/answer",
                 json={
                     "gameId": str(uuid4()),
-                    "board": empty_board(),
-                    "candidates": empty_candidates(),
                     "message": "Hilfe",
                 },
             )
@@ -180,8 +209,6 @@ def test_answer_chat_does_not_store_messages_when_assistant_fails() -> None:
                 headers={"Authorization": "Bearer test-token"},
                 json={
                     "gameId": str(uuid4()),
-                    "board": empty_board(),
-                    "candidates": empty_candidates(),
                     "message": "Hilfe",
                 },
             )
@@ -192,7 +219,7 @@ def test_answer_chat_does_not_store_messages_when_assistant_fails() -> None:
     asyncio.run(run())
 
 
-def test_answer_chat_rejects_invalid_board_shape() -> None:
+def test_answer_chat_rejects_client_supplied_board() -> None:
     async def run() -> None:
         app = create_app()
         transport = httpx.ASGITransport(app=app)

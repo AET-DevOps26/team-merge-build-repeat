@@ -1,7 +1,7 @@
 services:
   caddy:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-caddy:${IMAGE_TAG:-latest}
-    profiles: [ "proxy" ]
+    profiles: ["proxy"]
     depends_on:
       frontend:
         condition: service_healthy
@@ -12,7 +12,7 @@ services:
   frontend:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-frontend:${IMAGE_TAG:-latest}
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health" ]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,22 +22,28 @@ services:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-genai:${IMAGE_TAG:-latest}
     environment:
       CHAT_SERVICE_URL: ${CHAT_SERVICE_URL:-http://chat:8080}
+      GAME_SERVICE_URL: ${GAME_SERVICE_URL:-http://application:8080${APPLICATION_CONTEXT_PATH:-}}
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:e4b}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://logos.aet.cit.tum.de:8080/v1}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://logos.aet.cit.tum.de/v1}
       OPENAI_MODEL: ${OPENAI_MODEL:-openai/gpt-oss-120b}
       OPENAI_API_KEY_FILE: /run/secrets/logos_key
       GENAI_ROOT_PATH: ${GENAI_ROOT_PATH:-/}
+      GENAI_DEBUG: ${GENAI_DEBUG:-false}
     secrets:
       - source: logos_key
         target: logos_key
     depends_on:
+      application:
+        condition: service_healthy
+      chat:
+        condition: service_healthy
       ollama:
         condition: service_healthy
         required: false
     healthcheck:
-      test: [ "CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health" ]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -45,14 +51,14 @@ services:
 
   ollama:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-ollama:${IMAGE_TAG:-latest}
-    profiles: [ "local-llm" ]
+    profiles: ["local-llm"]
     volumes:
       - ollama-data:/root/.ollama
     environment:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:e4b}
       OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-8192}
     healthcheck:
-      test: [ "CMD-SHELL", 'ollama show "$$OLLAMA_MODEL" >/dev/null 2>&1' ]
+      test: ["CMD-SHELL", 'ollama show "$$OLLAMA_MODEL" >/dev/null 2>&1']
       interval: 10s
       timeout: 5s
       retries: 30
@@ -71,7 +77,7 @@ services:
         target: app_database_password
     healthcheck:
       test:
-        [ "CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"' ]
+        ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -91,7 +97,11 @@ services:
       - source: app_database_password
         target: spring.datasource.password
     healthcheck:
-      test: [ "CMD-SHELL", "curl -fsS \"http://localhost:8080$${SERVER_SERVLET_CONTEXT_PATH:-}/actuator/health\"" ]
+      test:
+        [
+          "CMD-SHELL",
+          'curl -fsS "http://localhost:8080$${SERVER_SERVLET_CONTEXT_PATH:-}/actuator/health"',
+        ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -115,7 +125,11 @@ services:
       - source: chat_database_password
         target: spring.datasource.password
     healthcheck:
-      test: [ "CMD-SHELL", "curl -fsS \"http://localhost:8080$${SERVER_SERVLET_CONTEXT_PATH:-}/actuator/health\"" ]
+      test:
+        [
+          "CMD-SHELL",
+          'curl -fsS "http://localhost:8080$${SERVER_SERVLET_CONTEXT_PATH:-}/actuator/health"',
+        ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -134,7 +148,7 @@ services:
         target: chat_database_password
     healthcheck:
       test:
-        [ "CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"' ]
+        ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -144,7 +158,7 @@ services:
     environment:
       GAME_ENGINE_ROOT_PATH: ${GAME_ENGINE_ROOT_PATH:-/}
     healthcheck:
-      test: [ "CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health" ]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -156,7 +170,7 @@ services:
       - ./services/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://localhost:9090" ]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090"]
       interval: 10s
       timeout: 5s
       retries: 5
