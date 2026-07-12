@@ -58,7 +58,13 @@ LLM_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=smollm2:135m
 GAME_SERVICE_URL=http://localhost:8080
+GENAI_DEBUG=false
 ```
+
+Set `GENAI_DEBUG=true` (or `DEBUG=true`) to log the full chat-answer processing
+flow: authorization validation, downstream data retrieval, answer generation,
+and message persistence. Tokens, authorization headers, API keys, and message
+contents are never written to these logs.
 
 Before calculating a Sudoku strategy, the service retrieves the solved board
 from `GET /games/{gameId}/solution` and the original puzzle template from

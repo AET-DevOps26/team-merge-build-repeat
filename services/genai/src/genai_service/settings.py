@@ -6,6 +6,13 @@ import sys
 from dataclasses import dataclass
 
 
+def _read_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _read_secret(name: str) -> str:
     value = os.getenv(name, "")
     file_path = os.getenv(f"{name}_FILE", "")
@@ -36,6 +43,7 @@ class Settings:
     openai_base_url: str
     openai_api_key: str
     openai_model: str
+    debug: bool = False
 
 
 def load_settings() -> Settings:
@@ -53,4 +61,5 @@ def load_settings() -> Settings:
         openai_base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
         openai_api_key=_read_secret("OPENAI_API_KEY"),
         openai_model=os.getenv("OPENAI_MODEL", "openai/gpt-oss-120b"),
+        debug=_read_bool("GENAI_DEBUG") or _read_bool("DEBUG"),
     )

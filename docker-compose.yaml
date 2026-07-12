@@ -30,6 +30,7 @@ services:
       OPENAI_MODEL: ${OPENAI_MODEL:-openai/gpt-oss-120b}
       OPENAI_API_KEY_FILE: /run/secrets/logos_key
       GENAI_ROOT_PATH: ${GENAI_ROOT_PATH:-/}
+      GENAI_DEBUG: ${GENAI_DEBUG:-false}
     secrets:
       - source: logos_key
         target: logos_key
