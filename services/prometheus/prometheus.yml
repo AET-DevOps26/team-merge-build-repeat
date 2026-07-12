@@ -25,20 +25,17 @@ scrape_configs:
 
   - job_name: 'genai-service'
     metrics_path: '/metrics'
-    scrape_interval: 10s
     static_configs:
       - targets:
           - 'genai:8080'
 
   - job_name: 'game-engine-service'
     metrics_path: '/metrics'
-    scrape_interval: 10s
     static_configs:
       - targets:
           - 'game-engine:8080'
 
   - job_name: 'postgres-databases'
-    scrape_interval: 15s
     static_configs:
       - targets:
           - 'app-db-exporter:9187'
