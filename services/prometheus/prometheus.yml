@@ -35,8 +35,12 @@ scrape_configs:
       - targets:
           - 'game-engine:8080'
 
-  - job_name: 'postgres-databases'
+  - job_name: 'app-databases'
     static_configs:
       - targets:
           - 'app-db-exporter:9187'
+
+  - job_name: 'chat-databases'
+    static_configs:
+      - targets:
           - 'chat-db-exporter:9187'
