@@ -1,10 +1,10 @@
 name: Java CI with Gradle
 
 on:
-  push:
-    branches: [ "main" , "klaudia/*" ]
+#  push:
+#    branches: [ "main" , "klaudia/*" ]
   pull_request:
-    branches: [ "main" , "klaudia/*" ]
+    branches: [ "main" ]
 
 jobs:
   build-and-test:
