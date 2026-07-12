@@ -17,6 +17,7 @@ import java.util.UUID;
 
 @RestController
 @AllArgsConstructor
+@RequestMapping("/v1")
 public class Controller {
 
     GameTemplateService gameTemplateService;

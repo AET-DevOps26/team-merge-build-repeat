@@ -32,7 +32,7 @@ def test_game_client_gets_solution_with_authorization() -> None:
             solution = await client.get_solution(game_id, "Bearer abc")
 
         assert solution == empty_board()
-        assert requests[0].url.path == f"/games/{game_id}/solution"
+        assert requests[0].url.path == f"/v1/games/{game_id}/solution"
         assert requests[0].headers["Authorization"] == "Bearer abc"
 
     asyncio.run(run())
@@ -58,7 +58,7 @@ def test_game_client_gets_template_with_authorization() -> None:
             template = await client.get_template(game_id, "Bearer abc")
 
         assert template == empty_board()
-        assert requests[0].url.path == f"/games/{game_id}/template"
+        assert requests[0].url.path == f"/v1/games/{game_id}/template"
         assert requests[0].headers["Authorization"] == "Bearer abc"
 
     asyncio.run(run())
@@ -83,7 +83,7 @@ def test_game_client_preserves_base_url_context_path() -> None:
             )
             await client.get_solution(game_id, "Bearer abc")
 
-        assert requests[0].url.path == f"/application/games/{game_id}/solution"
+        assert requests[0].url.path == f"/application/v1/games/{game_id}/solution"
 
     asyncio.run(run())
 

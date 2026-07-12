@@ -39,7 +39,7 @@ class GameServiceClient:
     async def get_solution(self, game_id: UUID, authorization: str) -> JsonBoard:
         response = await self._request(
             "GET",
-            f"games/{game_id}/solution",
+            f"/v1/games/{game_id}/solution",
             authorization=authorization,
         )
         data = response.json()
@@ -50,7 +50,7 @@ class GameServiceClient:
     async def get_template(self, game_id: UUID, authorization: str) -> JsonBoard:
         response = await self._request(
             "GET",
-            f"games/{game_id}/template",
+            f"/v1/games/{game_id}/template",
             authorization=authorization,
         )
         data = response.json()
@@ -61,7 +61,7 @@ class GameServiceClient:
     async def get_state(self, game_id: UUID, authorization: str) -> JsonBoard:
         response = await self._request(
             "GET",
-            f"games/{game_id}/state",
+            f"/v1/games/{game_id}/state",
             authorization=authorization,
         )
         return JsonBoardResponse.model_validate(response.json()).root
@@ -73,7 +73,7 @@ class GameServiceClient:
     ) -> JsonCandidateBoard:
         response = await self._request(
             "GET",
-            f"games/{game_id}/pencil-marks",
+            f"/v1/games/{game_id}/pencil-marks",
             authorization=authorization,
         )
         return JsonCandidateBoardResponse.model_validate(response.json()).root
