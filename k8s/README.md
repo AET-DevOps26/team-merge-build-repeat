@@ -19,8 +19,8 @@ workflow attempts to apply `k8s/base/namespace.yaml`, but the main rendered
 Kustomize output does not include the namespace object so namespace-scoped
 deployment credentials can be used when the namespace already exists.
 
-The existing production path uses Logos/OpenAI by default, so `ollama` is kept
-under `optional/` and is not part of `kustomization.yaml`.
+Kubernetes production uses Logos/OpenAI. Ollama is available only in the local
+Docker Compose development configuration.
 
 For release flow details, see [../RELEASE.md](../RELEASE.md). For API and health
 URLs exposed through the ingress, see
@@ -56,7 +56,6 @@ Required production environment variables:
 | `CHAT_DATABASE_SPRING_PROFILE` | `docker` |
 | `APPLICATION_CONTEXT_PATH` | `/application` |
 | `CHAT_CONTEXT_PATH` | `/chat` |
-| `LLM_PROVIDER` | `openai` |
 | `GENAI_ROOT_PATH` | `/genai` |
 | `GAME_ENGINE_ROOT_PATH` | `/game-engine` |
 | `OPENAI_BASE_URL` | `https://logos.aet.cit.tum.de:8080/v1` |
@@ -75,9 +74,7 @@ Required production secrets:
 | `CHAT_DATABASE_PASSWORD` | Chat PostgreSQL password |
 | `LOGOS_KEY` | Logos/OpenAI API key |
 
-Set `LLM_PROVIDER=openai` for the default production path. Set
-`LLM_PROVIDER=ollama` only when the optional Ollama workload is deployed and the
-GenAI service can reach it.
+The GenAI workload uses Logos/OpenAI in Kubernetes production.
 
 Render the standard manifests locally with:
 
@@ -89,9 +86,3 @@ The local root kustomization renders application images with `latest`. The
 production GitHub Actions workflow renders `k8s/overlays/release` and replaces
 `RELEASE_TAG` with the SemVer tag before applying manifests, so production never
 deploys `latest`.
-
-Apply the optional Ollama workload only when `LLM_PROVIDER=ollama` is intended:
-
-```sh
-kubectl apply -f k8s/optional/ollama.yaml
-```
