@@ -16,7 +16,7 @@ spec:
       containers:
         - name: frontend
           image: ghcr.io/aet-devops26/team-merge-build-repeat-frontend
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080

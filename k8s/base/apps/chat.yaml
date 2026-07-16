@@ -16,7 +16,7 @@ spec:
       initContainers:
         - name: wait-for-chat-database
           image: postgres:17
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
             - name: POSTGRES_DB
               valueFrom:

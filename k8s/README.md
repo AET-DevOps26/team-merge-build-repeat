@@ -5,12 +5,13 @@ used by Ansible:
 
 - GHCR images for `frontend`, `application`, `chat`, `genai`, and `game-engine`
 - PostgreSQL `StatefulSet`s for the application and chat databases
+- PostgreSQL exporters, Prometheus, and Grafana with persistent data volumes
 - Init containers that wait for PostgreSQL before starting the dependent
   Spring services
 - Kubernetes `Secret` data for database passwords and the Logos/OpenAI key
 - Kubernetes `ConfigMap` data for the non-secret runtime configuration
-- NGINX Ingress routing for `/`, `/game-engine`, `/genai`, `/application`, and
-  `/chat`
+- NGINX Ingress routing for `/`, `/game-engine`, `/genai`, `/application`,
+  `/chat`, and `/grafana`
 - Hostless HTTP Ingress rules so the stack is reachable through the ingress
   controller IP before a domain exists
 

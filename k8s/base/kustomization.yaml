@@ -8,5 +8,6 @@ resources:
   - apps/genai.yaml
   - apps/game-engine.yaml
   - apps/frontend.yaml
+  - apps/monitoring.yaml
   - networking/services.yaml
   - networking/ingress.yaml

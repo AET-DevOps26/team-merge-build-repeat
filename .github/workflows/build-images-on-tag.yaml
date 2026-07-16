@@ -260,4 +260,8 @@ jobs:
           kubectl -n merge-build-repeat rollout status deployment/genai --timeout=5m
           kubectl -n merge-build-repeat rollout status deployment/game-engine --timeout=5m
           kubectl -n merge-build-repeat rollout status deployment/frontend --timeout=5m
+          kubectl -n merge-build-repeat rollout status deployment/app-db-exporter --timeout=5m
+          kubectl -n merge-build-repeat rollout status deployment/chat-db-exporter --timeout=5m
+          kubectl -n merge-build-repeat rollout status deployment/prometheus --timeout=5m
+          kubectl -n merge-build-repeat rollout status deployment/grafana --timeout=5m
           kubectl -n merge-build-repeat get pods,svc,ingress
