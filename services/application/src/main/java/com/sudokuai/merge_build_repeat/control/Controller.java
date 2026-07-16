@@ -9,6 +9,7 @@ import com.sudokuai.merge_build_repeat.service.*;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -101,18 +102,21 @@ public class Controller {
     }
 
     @PutMapping("/users/account")
+    @PreAuthorize("@gameAccessAuthorizer.hasAccess(authentication, #p0)")
     public ResponseEntity<Void> updateAccount(UUID userId, UUID gameId) {
         accountService.updateAccount(userId, gameId);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/users/latest-game")
+    @PreAuthorize("@gameAccessAuthorizer.hasAccess(authentication, #p0)")
     public ResponseEntity<UUID> getLatestGameId(@RequestParam UUID userId) {
         UUID latestGameId = accountService.getLatestGameId(userId);
         return ResponseEntity.ok(latestGameId);
     }
 
     @GetMapping("/games/{gameId}/verify")
+    @PreAuthorize("@gameAccessAuthorizer.hasAccess(authentication, #p0)")
     public ResponseEntity<Boolean> verifyGameId(@PathVariable UUID gameId, @RequestParam UUID userId) {
         boolean isValid = accountService.verifyUserGameAccess(gameId, userId);
         return ResponseEntity.ok(isValid);
