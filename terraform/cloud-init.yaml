@@ -6,6 +6,19 @@ packages:
   - ca-certificates
   - curl
 
+write_files:
+  - path: /etc/profile.d/public-ip-addr.sh
+    owner: root:root
+    permissions: "0644"
+    content: |
+      export PUBLIC_IP_ADDR=${public_ip_address}
+  - path: /etc/environment
+    owner: root:root
+    permissions: "0644"
+    append: true
+    content: |
+      PUBLIC_IP_ADDR=${public_ip_address}
+
 runcmd:
   - install -m 0755 -d /etc/apt/keyrings
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc

@@ -53,6 +53,9 @@ jobs:
           - name: genai
             context: ./services/genai
             image: genai
+          - name: postgres
+            context: ./services/postgres
+            image: postgres
           - name: application
             context: ./services/application
             image: application
@@ -62,6 +65,20 @@ jobs:
           - name: game-engine
             context: ./services/game-engine
             image: game-engine
+          - name: postgres-exporter
+            context: ./services/prometheus
+            dockerfile: ./services/prometheus/postgres-exporter.Dockerfile
+            image: postgres-exporter
+          - name: chat-db-exporter
+            context: ./services/prometheus
+            dockerfile: ./services/prometheus/postgres-exporter.Dockerfile
+            image: chat-db-exporter
+          - name: prometheus
+            context: ./services/prometheus
+            image: prometheus
+          - name: grafana
+            context: ./services/grafana
+            image: grafana
 
     steps:
       - name: Check out repository
@@ -108,6 +125,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

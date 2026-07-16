@@ -60,11 +60,13 @@ The Docker host path is split across two manual GitHub Actions workflows on
 
 1. Run `Terraform` to create or update the Azure VM and remote state backed
    infrastructure.
-2. Run `Deploy Production` with an image tag such as `v1.2.3` or `1.2.3`.
+2. Run `Deploy Production` with the Git release tag, for example `v1.2.3`.
 
-`Deploy Production` reads the VM public IP and admin user from Terraform output,
-builds a temporary Ansible inventory, and runs `ansible/playbook.yml` to deploy
-the production Docker Compose stack to `/opt/team-merge-build-repeat`.
+`Deploy Production` checks out that Git tag, reads the VM public IP and admin
+user from Terraform output, builds a temporary Ansible inventory, and runs
+`ansible/playbook.yml` to deploy the tagged production Docker Compose stack to
+`/opt/team-merge-build-repeat`. The Docker images use the same release version
+without the leading `v`.
 
 Terraform setup and required Azure variables are documented in
 [terraform/README.md](terraform/README.md). Production Docker Compose behavior is

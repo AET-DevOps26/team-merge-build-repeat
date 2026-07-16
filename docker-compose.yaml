@@ -45,7 +45,7 @@ services:
       start_period: 20s
 
   application-database:
-    image: postgres:17
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-postgres:${IMAGE_TAG:-latest}
     environment:
       POSTGRES_DB: ${APP_DATABASE_NAME:-game_database}
       POSTGRES_USER: ${APP_DATABASE_USER:-postgres}
@@ -61,6 +61,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
   application:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-application:${IMAGE_TAG:-latest}
@@ -116,7 +117,7 @@ services:
       start_period: 30s
 
   chat-database:
-    image: postgres:17
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-postgres:${IMAGE_TAG:-latest}
     environment:
       POSTGRES_DB: ${CHAT_DATABASE_NAME:-chat_database}
       POSTGRES_USER: ${CHAT_DATABASE_USER:-chat_user}
@@ -132,6 +133,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
   game-engine:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-game-engine:${IMAGE_TAG:-latest}
@@ -144,41 +146,72 @@ services:
       retries: 5
       start_period: 20s
 
-  prometheus:
-    image: prom/prometheus:latest
-    volumes:
-      - ./services/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9090"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
   app-db-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-postgres-exporter:${IMAGE_TAG:-latest}
     environment:
       DATA_SOURCE_URI: "application-database:5432/${APP_DATABASE_NAME:-game_database}?sslmode=disable"
       DATA_SOURCE_USER: "${APP_DATABASE_USER:-postgres}"
       DATA_SOURCE_PASS_FILE: "/run/secrets/app_database_password"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres_exporter/queries.yaml"
     secrets:
       - app_database_password
     depends_on:
       application-database:
         condition: service_healthy
+    healthcheck:
+      test:
+        [ "CMD-SHELL", "wget -qO- http://localhost:9187/metrics >/dev/null || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   chat-db-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-chat-db-exporter:${IMAGE_TAG:-latest}
     environment:
       DATA_SOURCE_URI: "chat-database:5432/${CHAT_DATABASE_NAME:-chat_database}?sslmode=disable"
       DATA_SOURCE_USER: "${CHAT_DATABASE_USER:-chat_user}"
       DATA_SOURCE_PASS_FILE: "/run/secrets/chat_database_password"
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres_exporter/queries.yaml"
     secrets:
       - chat_database_password
     depends_on:
       chat-database:
         condition: service_healthy
+    healthcheck:
+      test:
+        [ "CMD-SHELL", "wget -qO- http://localhost:9187/metrics >/dev/null || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  prometheus:
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-prometheus:${IMAGE_TAG:-latest}
+    volumes:
+      - prometheus_data:/prometheus
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:9090" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  grafana:
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-grafana:${IMAGE_TAG:-latest}
+    environment:
+      GF_SERVER_ROOT_URL: "http://${PUBLIC_IP_ADDR:-localhost}/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: [ "CMD-SHELL", "wget -qO- http://localhost:3000" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
 secrets:
   logos_key:
@@ -194,3 +227,4 @@ volumes:
   postgres_data:
   chat-database-postgres-data:
   prometheus_data:
+  grafana_data:

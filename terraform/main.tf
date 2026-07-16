@@ -124,7 +124,8 @@ resource "azurerm_linux_virtual_machine" "main" {
   disable_password_authentication = true
   network_interface_ids           = [azurerm_network_interface.main.id]
   custom_data = base64encode(templatefile("${path.module}/cloud-init.yaml", {
-    admin_username = var.admin_username
+    admin_username    = var.admin_username
+    public_ip_address = azurerm_public_ip.main.ip_address
   }))
 
   admin_ssh_key {
