@@ -110,7 +110,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by(job) (increase(pg_stat_database_xact_commit[$range])) + (sum by(job) (rate(pg_stat_database_xact_rollback[$__rate_interval])))",
+                        "expr": "sum by(job) (increase(pg_stat_database_xact_commit[$range])) + (sum by(job) (increase(pg_stat_database_xact_rollback[$__rate_interval])))",
                         "instant": false,
                         "legendFormat": "__auto",
                         "range": true
@@ -250,7 +250,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "1000 *\nsum by (job) (\n  rate(pg_stat_statements_total_time[$__rate_interval])\n)\n/\nsum by (job) (\n  rate(pg_stat_statements_total_calls[$__rate_interval])\n)",
+                        "expr": "sum by (job) (\n  rate(pg_stat_statements_total_time[$__rate_interval])\n)\n/\nsum by (job) (\n  rate(pg_stat_statements_total_calls[$__rate_interval])\n)",
                         "instant": false,
                         "legendFormat": "__auto",
                         "range": true
@@ -348,7 +348,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "100 *\nsum by (job) (\n  rate(\n    http_server_requests_seconds_count{\n      status=~\"5..\",\n      uri!~\"/actuator.*\"\n    }[$__rate_interval]\n  )\n)\n/\nclamp_min(\n  sum by (job) (\n    rate(\n      http_server_requests_seconds_count{\n        uri!~\"/actuator.*\"\n      }[$__rate_interval]\n    )\n  ),\n  0.000000001\n)\nor on() vector(0)",
+                        "expr": "100 *\nsum by (job) (\n  rate(\n    http_server_requests_seconds_count{\n      status=~\"5..\",\n      uri!~\"/actuator.*\"\n    }[$__rate_interval]\n  )\n)\n/\nclamp_min(\n  sum by (job) (\n    rate(\n      http_server_requests_seconds_count{\n        uri!~\"/actuator.*\"\n      }[$__rate_interval]\n    )\n  ),\n  0.000000001\n)\nor on(job) group_left() (\n  clamp_min(\n    sum by (job) (\n      rate(\n        http_server_requests_seconds_count{\n          uri!~\"/actuator.*\"\n        }[$__rate_interval]\n      )\n    ),\n    0.000000001\n  ) * 0\n)",
                         "legendFormat": "__auto",
                         "range": true
                       }
@@ -369,7 +369,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "100 *\nsum by (job) (\n  rate(\n    http_requests_total{\n      status=\"5xx\",\n      handler!=\"/metrics\"\n    }[$__rate_interval]\n  )\n)\n/\nclamp_min(\n  sum by (job) (\n    rate(\n      http_requests_total{\n        handler!=\"/metrics\"\n      }[$__rate_interval]\n    )\n  ),\n  0.000000001\n)\n or on() vector(0)",
+                        "expr": "100 *\nsum by (job) (\n  rate(\n    http_requests_total{\n      status=\"5xx\",\n      handler!=\"/metrics\"\n    }[$__rate_interval]\n  )\n)\n/\nclamp_min(\n  sum by (job) (\n    rate(\n      http_requests_total{\n        handler!=\"/metrics\"\n      }[$__rate_interval]\n    )\n  ),\n  0.000000001\n)\nor on(job) group_left() (\n  clamp_min(\n    sum by (job) (\n      rate(\n        http_requests_total{\n          handler!=\"/metrics\"\n        }[$__rate_interval]\n      )\n    ),\n    0.000000001\n  ) * 0\n)",
                         "instant": false,
                         "legendFormat": "__auto",
                         "range": true
@@ -391,7 +391,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": " 100 *\nsum by (job) (\n  rate(pg_stat_database_xact_rollback[$__rate_interval])\n)\n/\nclamp_min(\n  (\n    sum by (job) (\n      rate(pg_stat_database_xact_commit[$__rate_interval])\n    )\n    +\n    sum by (job) (\n      rate(pg_stat_database_xact_rollback[$__rate_interval])\n    )\n  ),\n  0.000000001\n)\nor on() vector(0)",
+                        "expr": " 100 *\nsum by (job) (\n  rate(pg_stat_database_xact_rollback[$__rate_interval])\n)\n/\nclamp_min(\n  (\n    sum by (job) (\n      rate(pg_stat_database_xact_commit[$__rate_interval])\n    )\n    +\n    sum by (job) (\n      rate(pg_stat_database_xact_rollback[$__rate_interval])\n    )\n  ),\n  0.000000001\n)\nor on(job) group_left() (\n  clamp_min(\n    (\n      sum by (job) (\n        rate(pg_stat_database_xact_commit[$__rate_interval])\n      )\n      +\n      sum by (job) (\n        rate(pg_stat_database_xact_rollback[$__rate_interval])\n      )\n    ),\n    0.000000001\n  ) * 0\n)",
                         "instant": false,
                         "legendFormat": "__auto",
                         "range": true
