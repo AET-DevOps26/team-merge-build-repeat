@@ -46,13 +46,33 @@ services:
       context: ./services/genai
     ports:
       - "127.0.0.1:${GENAI_HOST_PORT:-8002}:8080"
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+    depends_on:
+      ollama:
+        condition: service_healthy
+        required: false
 
   ollama:
     pull_policy: build
     build:
       context: ./services/ollama
+    profiles: ["local-llm"]
     ports:
       - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-8192}
+    healthcheck:
+      test: ["CMD-SHELL", 'ollama show "$$OLLAMA_MODEL" >/dev/null 2>&1']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
 
   application:
     pull_policy: build
@@ -90,3 +110,5 @@ services:
     ports:
       - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
 
+volumes:
+  ollama-data:

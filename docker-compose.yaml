@@ -23,9 +23,7 @@ services:
     environment:
       CHAT_SERVICE_URL: ${CHAT_SERVICE_URL:-http://chat:8080}
       GAME_SERVICE_URL: ${GAME_SERVICE_URL:-http://application:8080${APPLICATION_CONTEXT_PATH:-}}
-      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+      LLM_PROVIDER: openai
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://logos.aet.cit.tum.de/v1}
       OPENAI_MODEL: ${OPENAI_MODEL:-openai/gpt-oss-120b}
       OPENAI_API_KEY_FILE: /run/secrets/logos_key
@@ -39,30 +37,12 @@ services:
         condition: service_healthy
       chat:
         condition: service_healthy
-      ollama:
-        condition: service_healthy
-        required: false
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
-
-  ollama:
-    image: ghcr.io/aet-devops26/team-merge-build-repeat-ollama:${IMAGE_TAG:-latest}
-    profiles: ["local-llm"]
-    volumes:
-      - ollama-data:/root/.ollama
-    environment:
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
-      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-8192}
-    healthcheck:
-      test: ["CMD-SHELL", 'ollama show "$$OLLAMA_MODEL" >/dev/null 2>&1']
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 10s
 
   application-database:
     image: postgres:17
@@ -213,5 +193,4 @@ volumes:
   caddy_config:
   postgres_data:
   chat-database-postgres-data:
-  ollama-data:
   prometheus_data:
