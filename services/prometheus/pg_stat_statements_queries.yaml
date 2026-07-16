@@ -1,0 +1,10 @@
+pg_stat_statements:
+  query: "SELECT sum(total_exec_time) as total_time, sum(calls) as total_calls FROM pg_stat_statements"
+  metrics:
+    - total_time:
+        usage: GAUGE
+        description: "Total execution time in pg_stat_statements (ms)"
+    - total_calls:
+        usage: GAUGE
+        description: "Total number of calls in pg_stat_statements"
+

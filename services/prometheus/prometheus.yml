@@ -7,29 +7,36 @@ scrape_configs:
     static_configs:
       - targets: [ 'localhost:9090' ]
 
-  - job_name: 'caddy'
+  - job_name: 'chat-service'
+    metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: [ 'caddy:2019' ]
+      - targets:
+          - 'chat:8080'
 
-
-  - job_name: 'spring-services'
+  - job_name: 'application-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets:
           - 'application:8080'
-          - 'chat:8080'
 
-  - job_name: 'fastapi-services'
+  - job_name: 'genai-service'
     metrics_path: '/metrics'
-    scrape_interval: 10s
     static_configs:
       - targets:
           - 'genai:8080'
+
+  - job_name: 'game-engine-service'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets:
           - 'game-engine:8080'
 
-  - job_name: 'postgres-databases'
-    scrape_interval: 15s
+  - job_name: 'app-databases'
     static_configs:
       - targets:
           - 'app-db-exporter:9187'
+
+  - job_name: 'chat-databases'
+    static_configs:
+      - targets:
           - 'chat-db-exporter:9187'
