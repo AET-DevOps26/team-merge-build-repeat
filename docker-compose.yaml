@@ -60,7 +60,8 @@ services:
 
   application-database:
     image: postgres:17
-    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    entrypoint: ["/scripts/postgres-entrypoint.sh"]
+    command: ["-c", "shared_preload_libraries=pg_stat_statements"]
     environment:
       POSTGRES_DB: ${APP_DATABASE_NAME:-game_database}
       POSTGRES_USER: ${APP_DATABASE_USER:-postgres}
@@ -68,6 +69,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-pg-stat-statements.sql:/docker-entrypoint-initdb.d/init-pg-stat-statements.sql:ro
+      - ./scripts/postgres-entrypoint.sh:/scripts/postgres-entrypoint.sh:ro
     secrets:
       - source: app_database_password
         target: app_database_password
@@ -123,7 +125,8 @@ services:
 
   chat-database:
     image: postgres:17
-    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    entrypoint: ["/scripts/postgres-entrypoint.sh"]
+    command: ["-c", "shared_preload_libraries=pg_stat_statements"]
     environment:
       POSTGRES_DB: ${CHAT_DATABASE_NAME:-chat_database}
       POSTGRES_USER: ${CHAT_DATABASE_USER:-chat_user}
@@ -131,6 +134,7 @@ services:
     volumes:
       - chat-database-postgres-data:/var/lib/postgresql/data
       - ./scripts/init-pg-stat-statements.sql:/docker-entrypoint-initdb.d/init-pg-stat-statements.sql:ro
+      - ./scripts/postgres-entrypoint.sh:/scripts/postgres-entrypoint.sh:ro
     secrets:
       - source: chat_database_password
         target: chat_database_password
