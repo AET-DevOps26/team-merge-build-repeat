@@ -95,3 +95,59 @@ spec:
     - name: http
       port: 8080
       targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: merge-build-repeat
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: prometheus
+  ports:
+    - name: http
+      port: 9090
+      targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-db-exporter
+  namespace: merge-build-repeat
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: app-db-exporter
+  ports:
+    - name: metrics
+      port: 9187
+      targetPort: metrics
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-db-exporter
+  namespace: merge-build-repeat
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: chat-db-exporter
+  ports:
+    - name: metrics
+      port: 9187
+      targetPort: metrics
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: merge-build-repeat
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

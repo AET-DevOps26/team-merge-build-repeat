@@ -13,3 +13,13 @@ images:
     newTag: latest
   - name: ghcr.io/aet-devops26/team-merge-build-repeat-genai
     newTag: latest
+  - name: ghcr.io/aet-devops26/team-merge-build-repeat-postgres
+    newTag: latest
+  - name: ghcr.io/aet-devops26/team-merge-build-repeat-postgres-exporter
+    newTag: latest
+  - name: ghcr.io/aet-devops26/team-merge-build-repeat-chat-db-exporter
+    newTag: latest
+  - name: ghcr.io/aet-devops26/team-merge-build-repeat-prometheus
+    newTag: latest
+  - name: ghcr.io/aet-devops26/team-merge-build-repeat-grafana
+    newTag: latest
