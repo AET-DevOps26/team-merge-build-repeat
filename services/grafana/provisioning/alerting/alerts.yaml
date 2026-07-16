@@ -89,11 +89,6 @@ groups:
                     type: "lt"
                     params: [ 1 ]
 
-  - orgId: 1
-    name: app-alerts
-    folder: Infrastructure
-    interval: 1m
-    rules:
       - uid: high-latency-http-server
         title: High Latency - http_server_requests_seconds
         condition: B
