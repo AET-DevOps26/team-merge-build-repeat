@@ -67,9 +67,7 @@ services:
     ports:
       - "127.0.0.1:${CHAT_DATABASE_API_PORT:-8083}:8080"
 
-  chat-database:
-    ports:
-      - "127.0.0.1:${CHAT_DATABASE_POSTGRES_PORT:-5431}:5432"
+
 
   game-engine:
     pull_policy: build
@@ -78,9 +76,28 @@ services:
     ports:
       - "127.0.0.1:${GAME_ENGINE_HOST_PORT:-8082}:8080"
 
-  prometheus:
+  app-db-exporter:
+    pull_policy: build
+    build:
+      context: ./services/prometheus
+      dockerfile: postgres-exporter.Dockerfile
     ports:
-      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+      - "127.0.0.1:${APP_DB_EXPORTER_PORT:-8023}:9187"
+
+  chat-db-exporter:
+    pull_policy: build
+    build:
+      context: ./services/prometheus
+      dockerfile: postgres-exporter.Dockerfile
+    ports:
+      - "127.0.0.1:${CHAT_DB_EXPORTER_PORT:-8022}:9187"
+
+  prometheus:
+    pull_policy: build
+    build:
+      context: ./services/prometheus
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-8021}:9090"
 
   grafana:
     pull_policy: build

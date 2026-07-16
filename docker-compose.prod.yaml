@@ -62,6 +62,14 @@ services:
         target: chat_database_password
         mode: 0444
 
+  chat-db-exporter:
+    pull_policy: always
+    restart: unless-stopped
+
+  app-db-exporter:
+    pull_policy: always
+    restart: unless-stopped
+      
   prometheus:
     pull_policy: always
     restart: unless-stopped

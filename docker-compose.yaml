@@ -157,10 +157,16 @@ services:
       start_period: 20s
 
   prometheus:
-    image: prom/prometheus:latest
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-grafana:${IMAGE_TAG:-latest}
     volumes:
-      - ./services/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+    depends_on:
+      - app-db-exporter
+      - chat-db-exporter
+      - game-engine
+      - chat
+      - application
+      - genai
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://localhost:9090" ]
       interval: 10s
@@ -169,36 +175,44 @@ services:
       start_period: 20s
 
   app-db-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-postgres-exporter:${IMAGE_TAG:-latest}
     environment:
       DATA_SOURCE_URI: "application-database:5432/${APP_DATABASE_NAME:-game_database}?sslmode=disable"
       DATA_SOURCE_USER: "${APP_DATABASE_USER:-postgres}"
       DATA_SOURCE_PASS_FILE: "/run/secrets/app_database_password"
-      PG_EXPORTER_EXTEND_QUERY_LRU: "true"
       PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres_exporter/queries.yaml"
-    volumes:
-      - ./services/prometheus/pg_stat_statements_queries.yaml:/etc/postgres_exporter/queries.yaml:ro
     secrets:
       - app_database_password
     depends_on:
       application-database:
         condition: service_healthy
+    healthcheck:
+      test:
+        [ "CMD-SHELL", "wget -qO- http://localhost:9187/metrics >/dev/null || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   chat-db-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-chat-db-exporter:${IMAGE_TAG:-latest}
     environment:
       DATA_SOURCE_URI: "chat-database:5432/${CHAT_DATABASE_NAME:-chat_database}?sslmode=disable"
       DATA_SOURCE_USER: "${CHAT_DATABASE_USER:-chat_user}"
       DATA_SOURCE_PASS_FILE: "/run/secrets/chat_database_password"
-      PG_EXPORTER_EXTEND_QUERY_LRU: "true"
       PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres_exporter/queries.yaml"
-    volumes:
-      - ./services/prometheus/pg_stat_statements_queries.yaml:/etc/postgres_exporter/queries.yaml:ro
     secrets:
       - chat_database_password
     depends_on:
       chat-database:
         condition: service_healthy
+    healthcheck:
+      test:
+        [ "CMD-SHELL", "wget -qO- http://localhost:9187/metrics >/dev/null || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   grafana:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-grafana:${IMAGE_TAG:-latest}
