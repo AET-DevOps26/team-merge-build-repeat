@@ -562,7 +562,7 @@
       "hideTimepicker": false,
       "fiscalYearStartMonth": 0
     },
-    "title": "Custom Dashboard",
+    "title": "Overview",
     "variables": [
       {
         "kind": "IntervalVariable",

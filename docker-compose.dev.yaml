@@ -83,5 +83,8 @@ services:
       - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
 
   grafana:
+    pull_policy: build
+    build:
+      context: ./services/grafana
     ports:
-      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+      - "127.0.0.1:${GRAFANA_PORT:-8020}:3000"

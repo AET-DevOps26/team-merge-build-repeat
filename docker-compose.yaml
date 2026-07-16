@@ -60,8 +60,8 @@ services:
 
   application-database:
     image: postgres:17
-    entrypoint: ["/scripts/postgres-entrypoint.sh"]
-    command: ["-c", "shared_preload_libraries=pg_stat_statements"]
+    entrypoint: [ "/scripts/postgres-entrypoint.sh" ]
+    command: [ "-c", "shared_preload_libraries=pg_stat_statements" ]
     environment:
       POSTGRES_DB: ${APP_DATABASE_NAME:-game_database}
       POSTGRES_USER: ${APP_DATABASE_USER:-postgres}
@@ -125,8 +125,8 @@ services:
 
   chat-database:
     image: postgres:17
-    entrypoint: ["/scripts/postgres-entrypoint.sh"]
-    command: ["-c", "shared_preload_libraries=pg_stat_statements"]
+    entrypoint: [ "/scripts/postgres-entrypoint.sh" ]
+    command: [ "-c", "shared_preload_libraries=pg_stat_statements" ]
     environment:
       POSTGRES_DB: ${CHAT_DATABASE_NAME:-chat_database}
       POSTGRES_USER: ${CHAT_DATABASE_USER:-chat_user}
@@ -201,12 +201,11 @@ services:
         condition: service_healthy
 
   grafana:
-    image: grafana/grafana:latest
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-grafana:${IMAGE_TAG:-latest}
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./services/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-      - ./services/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./services/grafana/dashboard.json:/etc/grafana/provisioning/dashboards/dashboard.json:ro
+    depends_on:
+      - prometheus
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://localhost:3000" ]
       interval: 10s
