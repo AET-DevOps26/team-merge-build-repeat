@@ -20,16 +20,13 @@ done
 echo "PostgreSQL is ready. Ensuring pg_stat_statements extension..."
 
 # Attempt to create the extension using the appropriate password file
-if [ -f "/run/secrets/app_database_password" ]; then
-  PGPASSFILE=/run/secrets/app_database_password
-elif [ -f "/run/secrets/chat_database_password" ]; then
-  PGPASSFILE=/run/secrets/chat_database_password
+if [ -n "$POSTGRES_PASSWORD_FILE" ] && [ -f "$POSTGRES_PASSWORD_FILE" ]; then
+  export PGPASSWORD=$(cat "$POSTGRES_PASSWORD_FILE")
+elif [ -n "$POSTGRES_PASSWORD" ]; then
+  export PGPASSWORD="$POSTGRES_PASSWORD"
 fi
 
-if [ -n "$PGPASSFILE" ]; then
-  export PGPASSFILE
-  psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;" || true
-fi
+psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;" || true
 
 echo "pg_stat_statements extension migration complete."
 
