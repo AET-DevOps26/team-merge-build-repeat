@@ -110,7 +110,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by(job) (increase(pg_stat_database_xact_commit[$range])) + (sum by(job) (increase(pg_stat_database_xact_rollback[$__rate_interval])))",
+                        "expr": "sum by(job) (increase(pg_stat_database_xact_commit[$__rate_interval])) + (sum by(job) (increase(pg_stat_database_xact_rollback[$__rate_interval])))",
                         "instant": false,
                         "legendFormat": "__auto",
                         "range": true
