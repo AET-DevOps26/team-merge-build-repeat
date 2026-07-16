@@ -229,6 +229,7 @@ jobs:
             --from-literal=GAME_ENGINE_ROOT_PATH="$GAME_ENGINE_ROOT_PATH" \
             --from-literal=OPENAI_BASE_URL="$OPENAI_BASE_URL" \
             --from-literal=OPENAI_MODEL="$OPENAI_MODEL" \
+            --from-literal=PUBLIC_IP_ADDR=localhost \
             --from-literal=SUPABASE_AUTH_ISSUER="$SUPABASE_AUTH_ISSUER" \
             --from-literal=SUPABASE_AUTH_JWKS_URI="$SUPABASE_AUTH_JWKS_URI" \
             --dry-run=client \
@@ -242,6 +243,28 @@ jobs:
           sed -i "s/newTag: RELEASE_TAG/newTag: ${{ steps.version.outputs.app_version }}/g" \
             "$release_render_dir/k8s/overlays/release/kustomization.yaml"
           kubectl kustomize "$release_render_dir/k8s/overlays/release" | kubectl apply -f -
+
+      - name: Configure public Grafana URL
+        shell: bash
+        run: |
+          public_address=""
+          for attempt in {1..60}; do
+            public_address="$(kubectl -n merge-build-repeat get ingress frontend \
+              -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+            if [ -z "$public_address" ]; then
+              public_address="$(kubectl -n merge-build-repeat get ingress frontend \
+                -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
+            fi
+            if [ -n "$public_address" ]; then
+              break
+            fi
+            sleep 5
+          done
+
+          : "${public_address:?Ingress controller did not publish a public IP address or hostname within five minutes.}"
+          kubectl -n merge-build-repeat patch configmap app-config --type merge \
+            --patch "{\"data\":{\"PUBLIC_IP_ADDR\":\"$public_address\"}}"
+          kubectl -n merge-build-repeat rollout restart deployment/grafana
 
       - name: Wait for rollout
         shell: bash
