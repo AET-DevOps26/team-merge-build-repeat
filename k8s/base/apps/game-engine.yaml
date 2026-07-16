@@ -28,7 +28,7 @@ spec:
                   key: GAME_ENGINE_ROOT_PATH
           resources:
             requests:
-              memory: 64Mi
+              memory: 32Mi
               cpu: 10m
             limits:
               memory: 128Mi
