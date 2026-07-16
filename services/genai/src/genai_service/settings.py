@@ -57,7 +57,7 @@ def load_settings() -> Settings:
         ),
         llm_provider=os.getenv("LLM_PROVIDER", "").strip().lower(),
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-        ollama_model=os.getenv("OLLAMA_MODEL", "smollm2:135m"),
+        ollama_model=os.getenv("OLLAMA_MODEL", "qwen3:4b"),
         openai_base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
         openai_api_key=_read_secret("OPENAI_API_KEY"),
         openai_model=os.getenv("OPENAI_MODEL", "openai/gpt-oss-120b"),

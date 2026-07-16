@@ -25,7 +25,7 @@ services:
       GAME_SERVICE_URL: ${GAME_SERVICE_URL:-http://application:8080${APPLICATION_CONTEXT_PATH:-}}
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:e4b}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://logos.aet.cit.tum.de/v1}
       OPENAI_MODEL: ${OPENAI_MODEL:-openai/gpt-oss-120b}
       OPENAI_API_KEY_FILE: /run/secrets/logos_key
@@ -55,7 +55,7 @@ services:
     volumes:
       - ollama-data:/root/.ollama
     environment:
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:e4b}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
       OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-8192}
     healthcheck:
       test: ["CMD-SHELL", 'ollama show "$$OLLAMA_MODEL" >/dev/null 2>&1']

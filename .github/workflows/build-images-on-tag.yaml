@@ -138,7 +138,7 @@ jobs:
       LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'openai' }}
       GENAI_ROOT_PATH: ${{ vars.GENAI_ROOT_PATH || '/genai' }}
       GAME_ENGINE_ROOT_PATH: ${{ vars.GAME_ENGINE_ROOT_PATH || '/game-engine' }}
-      OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'gemma4:e4b' }}
+      OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'qwen3:4b' }}
       OLLAMA_CONTEXT_LENGTH: ${{ vars.OLLAMA_CONTEXT_LENGTH || '8192' }}
       SUPABASE_AUTH_ISSUER: ${{ vars.SUPABASE_AUTH_ISSUER || 'https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1' }}
       SUPABASE_AUTH_JWKS_URI: ${{ vars.SUPABASE_AUTH_JWKS_URI || 'https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1/.well-known/jwks.json' }}
