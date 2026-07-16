@@ -5,8 +5,11 @@
 set -e
 
 # Start PostgreSQL in the background
-exec docker-entrypoint.sh postgres "$@" &
+docker-entrypoint.sh postgres "$@" &
 PG_PID=$!
+
+# Forward signals to PostgreSQL to ensure graceful shutdown
+trap 'kill -TERM $PG_PID; wait $PG_PID' SIGTERM SIGINT
 
 # Wait for PostgreSQL to be ready
 until pg_isready -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" 2>/dev/null; do
