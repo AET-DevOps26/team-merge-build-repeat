@@ -22,7 +22,6 @@ done
 
 echo "PostgreSQL is ready. Ensuring pg_stat_statements extension..."
 
-# Attempt to create the extension using the appropriate password file
 if [ -n "$POSTGRES_PASSWORD_FILE" ] && [ -f "$POSTGRES_PASSWORD_FILE" ]; then
   export PGPASSWORD=$(cat "$POSTGRES_PASSWORD_FILE")
 elif [ -n "$POSTGRES_PASSWORD" ]; then
