@@ -219,6 +219,9 @@ services:
 
   grafana:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-grafana:${IMAGE_TAG:-latest}
+    environment:
+      GF_SERVER_ROOT_URL: "http://${PUBLIC_IP_ADDR:-localhost}/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:

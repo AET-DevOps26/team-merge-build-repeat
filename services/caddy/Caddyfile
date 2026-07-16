@@ -1,4 +1,10 @@
 :80 {
+  redir /grafana /grafana/ 308
+
+  handle_path /grafana/* {
+    reverse_proxy grafana:3000
+  }
+
   handle_path /frontend/* {
     reverse_proxy frontend:8080
   }
