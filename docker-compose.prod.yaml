@@ -45,6 +45,7 @@ services:
         mode: 0444
 
   application-database:
+    pull_policy: always
     restart: unless-stopped
     secrets: !override
       - source: app_database_password
@@ -56,6 +57,7 @@ services:
     restart: unless-stopped
 
   chat-database:
+    pull_policy: always
     restart: unless-stopped
     secrets: !override
       - source: chat_database_password
@@ -69,7 +71,7 @@ services:
   app-db-exporter:
     pull_policy: always
     restart: unless-stopped
-      
+
   prometheus:
     pull_policy: always
     restart: unless-stopped

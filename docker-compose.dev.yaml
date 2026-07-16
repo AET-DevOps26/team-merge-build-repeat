@@ -57,8 +57,11 @@ services:
       - "127.0.0.1:${APP_HOST_PORT:-8081}:8080"
 
   application-database:
+    pull_policy: build
+    build:
+      context: ./services/postgres
     ports:
-      - "127.0.0.1:${APP_DATABASE_POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${APP_DATABASE_PORT:-5432}:5432"
 
   chat:
     pull_policy: build
@@ -68,6 +71,9 @@ services:
       - "127.0.0.1:${CHAT_DATABASE_API_PORT:-8083}:8080"
 
   chat-database:
+    pull_policy: build
+    build:
+      context: ./services/postgres
     ports:
       - "127.0.0.1:${CHAT_DATABASE_POSTGRES_PORT:-5431}:5432"
 

@@ -59,26 +59,22 @@ services:
       start_period: 10s
 
   application-database:
-    image: postgres:17
-    entrypoint: [ "/scripts/postgres-entrypoint.sh" ]
-    command: [ "-c", "shared_preload_libraries=pg_stat_statements" ]
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-postgres:${IMAGE_TAG:-latest}
     environment:
       POSTGRES_DB: ${APP_DATABASE_NAME:-game_database}
       POSTGRES_USER: ${APP_DATABASE_USER:-postgres}
       POSTGRES_PASSWORD_FILE: /run/secrets/app_database_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-pg-stat-statements.sql:/docker-entrypoint-initdb.d/init-pg-stat-statements.sql:ro
-      - ./scripts/postgres-entrypoint.sh:/scripts/postgres-entrypoint.sh:ro
     secrets:
       - source: app_database_password
         target: app_database_password
     healthcheck:
-      test:
-        [ "CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"' ]
+      test: [ "CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"' ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
   application:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-application:${IMAGE_TAG:-latest}
@@ -124,26 +120,22 @@ services:
       start_period: 30s
 
   chat-database:
-    image: postgres:17
-    entrypoint: [ "/scripts/postgres-entrypoint.sh" ]
-    command: [ "-c", "shared_preload_libraries=pg_stat_statements" ]
+    image: ghcr.io/aet-devops26/team-merge-build-repeat-postgres:${IMAGE_TAG:-latest}
     environment:
       POSTGRES_DB: ${CHAT_DATABASE_NAME:-chat_database}
       POSTGRES_USER: ${CHAT_DATABASE_USER:-chat_user}
       POSTGRES_PASSWORD_FILE: /run/secrets/chat_database_password
     volumes:
       - chat-database-postgres-data:/var/lib/postgresql/data
-      - ./scripts/init-pg-stat-statements.sql:/docker-entrypoint-initdb.d/init-pg-stat-statements.sql:ro
-      - ./scripts/postgres-entrypoint.sh:/scripts/postgres-entrypoint.sh:ro
     secrets:
       - source: chat_database_password
         target: chat_database_password
     healthcheck:
-      test:
-        [ "CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"' ]
+      test: [ "CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"' ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
   game-engine:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-game-engine:${IMAGE_TAG:-latest}
