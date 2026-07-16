@@ -67,6 +67,7 @@ services:
       POSTGRES_PASSWORD_FILE: /run/secrets/app_database_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-pg-stat-statements.sql:/docker-entrypoint-initdb.d/init-pg-stat-statements.sql:ro
     secrets:
       - source: app_database_password
         target: app_database_password
@@ -129,6 +130,7 @@ services:
       POSTGRES_PASSWORD_FILE: /run/secrets/chat_database_password
     volumes:
       - chat-database-postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-pg-stat-statements.sql:/docker-entrypoint-initdb.d/init-pg-stat-statements.sql:ro
     secrets:
       - source: chat_database_password
         target: chat_database_password
