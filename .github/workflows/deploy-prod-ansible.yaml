@@ -3,8 +3,8 @@ name: Deploy Production
 on:
   workflow_dispatch:
     inputs:
-      image_tag:
-        description: Image tag to deploy, for example v1.2.3 or 1.2.3.
+      release_tag:
+        description: Git release tag to deploy, for example v1.2.3.
         required: true
         type: string
 
@@ -43,24 +43,24 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
     environment: production
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Normalize image tag
-        id: image_tag
+      - name: Validate release tag
         shell: bash
         env:
-          RAW_IMAGE_TAG: ${{ inputs.image_tag }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          raw_tag="$RAW_IMAGE_TAG"
-          normalized_tag="${raw_tag#v}"
+          normalized_tag="${RELEASE_TAG#v}"
 
-          if ! printf '%s' "$normalized_tag" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
-            echo "image_tag must be SemVer, for example v1.2.3, 1.2.3, v1.2.3-rc.1, or 1.2.3-rc.1" >&2
+          if ! printf '%s' "$RELEASE_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "release_tag must be a Git release tag with a leading v, for example v1.2.3 or v1.2.3-rc.1" >&2
             exit 1
           fi
 
           echo "IMAGE_TAG=$normalized_tag" >> "$GITHUB_ENV"
+
+      - name: Check out release
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.release_tag }}
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
