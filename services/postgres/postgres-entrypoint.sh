@@ -28,7 +28,15 @@ elif [ -n "$POSTGRES_PASSWORD" ]; then
   export PGPASSWORD="$POSTGRES_PASSWORD"
 fi
 
-psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;" || true
+RETRIES=30
+while [ $RETRIES -gt 0 ]; do
+  if psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"; then
+    break
+  fi
+  echo "Database not ready for extension creation, retrying in 2 seconds..."
+  sleep 2
+  RETRIES=$((RETRIES-1))
+done
 
 echo "pg_stat_statements extension migration complete."
 
