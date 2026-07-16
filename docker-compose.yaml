@@ -188,6 +188,9 @@ services:
 
   prometheus:
     image: ghcr.io/aet-devops26/team-merge-build-repeat-prometheus:${IMAGE_TAG:-latest}
+    environment:
+      APPLICATION_CONTEXT_PATH: ${APPLICATION_CONTEXT_PATH:-}
+      CHAT_CONTEXT_PATH: ${CHAT_CONTEXT_PATH:-}
     volumes:
       - prometheus_data:/prometheus
     healthcheck:
