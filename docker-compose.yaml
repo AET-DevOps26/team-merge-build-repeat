@@ -204,6 +204,9 @@ services:
     image: grafana/grafana:latest
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./services/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./services/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./services/grafana/dashboard.json:/etc/grafana/provisioning/dashboards/dashboard.json:ro
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://localhost:3000" ]
       interval: 10s
