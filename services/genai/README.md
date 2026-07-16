@@ -56,7 +56,7 @@ GENAI_MCP_COMMAND=python
 GENAI_MCP_ARGS="-m genai_service.mcp_server"
 LLM_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=smollm2:135m
+OLLAMA_MODEL=qwen3:4b
 GAME_SERVICE_URL=http://localhost:8080
 GENAI_DEBUG=false
 ```

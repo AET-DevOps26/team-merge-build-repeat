@@ -6,7 +6,6 @@ chat_database_user: "{{ lookup('env', 'CHAT_DATABASE_USER') | default('chat_user
 chat_database_spring_profile: "{{ lookup('env', 'CHAT_DATABASE_SPRING_PROFILE') | default('docker', true) }}"
 application_context_path: "{{ lookup('env', 'APPLICATION_CONTEXT_PATH') | default('/application', true) }}"
 chat_context_path: "{{ lookup('env', 'CHAT_CONTEXT_PATH') | default('/chat', true) }}"
-genai_llm_provider: "{{ lookup('env', 'LLM_PROVIDER') | default('openai', true) }}"
 genai_root_path: "{{ lookup('env', 'GENAI_ROOT_PATH') | default('/genai', true) }}"
 game_engine_root_path: "{{ lookup('env', 'GAME_ENGINE_ROOT_PATH') | default('/game-engine', true) }}"
 supabase_auth_issuer: "{{ lookup('env', 'SUPABASE_AUTH_ISSUER') | default('https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1', true) }}"

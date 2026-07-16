@@ -6,8 +6,8 @@ intended to run after Terraform has provisioned the VM.
 
 The playbook deploys:
 
-- GHCR images for `caddy`, `frontend`, `application`, `chat`, `genai`,
-  `ollama`, and `game-engine`
+- GHCR images for `caddy`, `frontend`, `application`, `chat`, `genai`, and
+  `game-engine`
 - PostgreSQL containers for the application and chat databases
 - The shared `docker-compose.yaml` file plus the production override
   `docker-compose.prod.yaml`
@@ -78,7 +78,6 @@ Required production environment variables:
 | `CHAT_DATABASE_SPRING_PROFILE` | `docker` |
 | `APPLICATION_CONTEXT_PATH` | `/application` |
 | `CHAT_CONTEXT_PATH` | `/chat` |
-| `LLM_PROVIDER` | `openai` |
 | `GENAI_ROOT_PATH` | `/genai` |
 | `GAME_ENGINE_ROOT_PATH` | `/game-engine` |
 
@@ -95,9 +94,8 @@ The GitHub Actions workflow also needs the Terraform and Azure variables
 documented in [../terraform/README.md](../terraform/README.md), because it reads
 the target host connection data from Terraform state.
 
-Set `LLM_PROVIDER=openai` for the default production path. Use
-`LLM_PROVIDER=ollama` only when the Docker host should run the Ollama container
-and the GenAI service should call it.
+Production always uses Logos/OpenAI. Local Ollama is available only through the
+development Compose configuration.
 
 ## Manual Run
 
