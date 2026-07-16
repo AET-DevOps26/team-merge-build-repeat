@@ -67,7 +67,9 @@ services:
     ports:
       - "127.0.0.1:${CHAT_DATABASE_API_PORT:-8083}:8080"
 
-
+  chat-database:
+    ports:
+      - "127.0.0.1:${CHAT_DATABASE_POSTGRES_PORT:-5431}:5432"
 
   game-engine:
     pull_policy: build
