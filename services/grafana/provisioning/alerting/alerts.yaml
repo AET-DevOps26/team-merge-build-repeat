@@ -1,0 +1,275 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: "System-Alert-Group"
+    folder: "Infrastructure Alerts"
+    interval: 60s
+    rules:
+      - uid: "cpu_usage_too_high"
+        title: "High CPU Usage Alert"
+        condition: "B" # Points to the threshold expression below
+        for: 5m
+        noDataState: "NoData"
+        execErrState: "Alerting"
+        annotations:
+          summary: "Instance CPU usage is high"
+          description: "CPU usage has exceeded 85% for more than 5 minutes."
+        labels:
+          severity: "warning"
+        data:
+          - refId: "A"
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: "prometheus-ds" # Match your data source UID
+            model:
+              expr: "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode='idle'}[5m])) * 100)"
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: "A"
+              type: "query"
+          - refId: "B"
+            datasourceUid: "-100" # -100 is Grafana's built-in expression engine
+            model:
+              conditions:
+                - evaluator:
+                    params: [85]
+                    type: "gt"
+                  operator:
+                    type: "and"
+                  query:
+                    params: ["A"]
+                  reducer:
+                    params: []
+                    type: "last"
+                  type: "query"
+              expression: "A"
+              refId: "B"
+              type: "threshold"
+  - orgId: 1
+    name: "app-alerts"
+    folder: "Infrastructure"
+    interval: 1m
+    rules:
+      - uid: "low-request-count"
+        title: "Low Request Count"
+        condition: B
+        for: 5m
+        noDataState: "NoData"
+        execErrState: "Error"
+        annotations:
+          summary: "Request count is low for one or more jobs"
+          description: "sum by(job) (increase(http_server_requests_seconds_count[5m])) is below threshold."
+        labels:
+          severity: "warning"
+        data:
+          - refId: "A"
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: "prometheus-ds"
+            model:
+              refId: "A"
+              expr: "sum by(job) (increase(http_server_requests_seconds_count[5m]))"
+              instant: true
+          - refId: "B"
+            datasourceUid: "__expr__"
+            model:
+              refId: "B"
+              type: "threshold"
+              expression: "A"
+              conditions:
+                - type: "query"
+                  reducer:
+                    type: "last"
+                  operator:
+                    type: "and"
+                  evaluator:
+                    type: "lt"
+                    params: [ 1 ]
+
+      - uid: high-latency-http-server
+        title: High Latency - http_server_requests_seconds
+        condition: B
+        for: 5m
+        noDataState: NoData
+        execErrState: Error
+        annotations:
+          summary: High latency detected
+          description: Mean latency from http_server_requests_seconds is above 500ms.
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-ds
+            model:
+              refId: A
+              expr: 1000 * sum by (job) (rate(http_server_requests_seconds_sum[5m])) / clamp_min(sum by (job) (rate(http_server_requests_seconds_count[5m])), 0.000000001)
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  reducer:
+                    type: last
+                  operator:
+                    type: and
+                  evaluator:
+                    type: gt
+                    params: [500]
+
+      - uid: high-latency-http-requests
+        title: High Latency - http_request_duration_seconds
+        condition: B
+        for: 5m
+        noDataState: NoData
+        execErrState: Error
+        annotations:
+          summary: High latency detected
+          description: Mean latency from http_request_duration_seconds is above 500ms.
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-ds
+            model:
+              refId: A
+              expr: 1000 * sum by (job) (rate(http_request_duration_seconds_sum[5m])) / clamp_min(sum by (job) (rate(http_request_duration_seconds_count[5m])), 0.000000001)
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  reducer:
+                    type: last
+                  operator:
+                    type: and
+                  evaluator:
+                    type: gt
+                    params: [500]
+
+      - uid: high-error-rate-http-server
+        title: High Error Rate - http_server_requests_seconds_count
+        condition: B
+        for: 5m
+        noDataState: NoData
+        execErrState: Error
+        annotations:
+          summary: High error rate detected
+          description: 5xx rate is above 5%.
+        labels:
+          severity: critical
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-ds
+            model:
+              refId: A
+              expr: 100 * sum by (job) (rate(http_server_requests_seconds_count{status=~"5..",uri!~"/actuator.*"}[5m])) / clamp_min(sum by (job) (rate(http_server_requests_seconds_count{uri!~"/actuator.*"}[5m])), 0.000000001)
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  reducer:
+                    type: last
+                  operator:
+                    type: and
+                  evaluator:
+                    type: gt
+                    params: [5]
+
+      - uid: high-error-rate-http-requests
+        title: High Error Rate - http_requests_total
+        condition: B
+        for: 5m
+        noDataState: NoData
+        execErrState: Error
+        annotations:
+          summary: High error rate detected
+          description: 5xx rate is above 5%.
+        labels:
+          severity: critical
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-ds
+            model:
+              refId: A
+              expr: 100 * sum by (job) (rate(http_requests_total{status="5xx",handler!="/metrics"}[5m])) / clamp_min(sum by (job) (rate(http_requests_total{handler!="/metrics"}[5m])), 0.000000001)
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  reducer:
+                    type: last
+                  operator:
+                    type: and
+                  evaluator:
+                    type: gt
+                    params: [5]
+
+      - uid: high-db-rollback-rate
+        title: High DB Rollback Rate
+        condition: B
+        for: 10m
+        noDataState: NoData
+        execErrState: Error
+        annotations:
+          summary: Database rollback ratio is high
+          description: Rollback ratio is above 2%.
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus-ds
+            model:
+              refId: A
+              expr: 100 * sum by (job) (rate(pg_stat_database_xact_rollback[5m])) / clamp_min((sum by (job) (rate(pg_stat_database_xact_commit[5m])) + sum by (job) (rate(pg_stat_database_xact_rollback[5m]))), 0.000000001)
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  reducer:
+                    type: last
+                  operator:
+                    type: and
+                  evaluator:
+                    type: gt
+                    params: [2]
