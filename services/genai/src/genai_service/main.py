@@ -1,4 +1,6 @@
 import os
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
@@ -13,6 +15,27 @@ from genai_service.chat_client import ChatServiceClient, ChatServiceError
 from genai_service.game_client import GameServiceClient, GameServiceError
 from genai_service.schemas import GenerateChatAnswerRequest, GenerateChatAnswerResponse
 from genai_service.settings import Settings, load_settings
+
+
+logger = logging.getLogger("genai_service")
+
+
+def _configure_logging(debug: bool) -> None:
+    """Enable request-flow diagnostics without exposing request credentials."""
+    if not debug:
+        return
+
+    logger.setLevel(logging.DEBUG)
+    if logger.handlers:
+        return
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+    )
+    logger.addHandler(handler)
+    logger.propagate = False
+    logger.debug("Detailed GenAI request logging is enabled.")
 
 
 def _configure_chat_model(settings: Settings, chat_model: Any | None) -> Any | None:
@@ -35,6 +58,7 @@ def _configure_chat_model(settings: Settings, chat_model: Any | None) -> Any | N
 
 def create_app(*, chat_model: Any | None = None) -> FastAPI:
     settings = load_settings()
+    _configure_logging(settings.debug)
     configured_chat_model = _configure_chat_model(settings, chat_model)
 
     @asynccontextmanager
@@ -81,7 +105,12 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
         request: Request,
         authorization: str | None = Header(default=None),
     ) -> GenerateChatAnswerResponse:
+        logger.debug("Received chat-answer request for game_id=%s.", payload.game_id)
         if authorization is None or not authorization.startswith("Bearer "):
+            logger.debug(
+                "Rejected chat-answer request for game_id=%s: missing or invalid bearer authorization.",
+                payload.game_id,
+            )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication is required.",
@@ -89,6 +118,10 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
 
         token = authorization.removeprefix("Bearer ").strip()
         if not token:
+            logger.debug(
+                "Rejected chat-answer request for game_id=%s: empty bearer token.",
+                payload.game_id,
+            )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication is required.",
@@ -99,34 +132,56 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
         assistant = request.app.state.assistant
 
         try:
+            logger.debug("Loading chat history for game_id=%s.", payload.game_id)
             chat = await chat_client.get_chat(payload.game_id, authorization)
+            logger.debug(
+                "Loaded %d chat messages for game_id=%s.",
+                len(chat.messages),
+                payload.game_id,
+            )
         except ChatServiceError as exc:
+            logger.debug("Failed to load chat history for game_id=%s: %s", payload.game_id, exc)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=str(exc),
             ) from exc
 
         try:
-            solution = await game_client.get_solution(payload.game_id, authorization)
+            logger.debug("Loading game data for game_id=%s.", payload.game_id)
+            solution, template, board, candidates = await asyncio.gather(
+                game_client.get_solution(payload.game_id, authorization),
+                game_client.get_template(payload.game_id, authorization),
+                game_client.get_state(payload.game_id, authorization),
+                game_client.get_pencil_marks(payload.game_id, authorization),
+            )
+            logger.debug("Loaded game data for game_id=%s.", payload.game_id)
         except GameServiceError as exc:
+            logger.debug("Failed to load game data for game_id=%s: %s", payload.game_id, exc)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=str(exc),
             ) from exc
 
         try:
+            logger.debug("Generating assistant answer for game_id=%s.", payload.game_id)
             assistant_response = await assistant.answer(
                 payload,
                 chat.messages,
                 solution,
+                template,
+                board,
+                candidates,
             )
+            logger.debug("Generated assistant answer for game_id=%s.", payload.game_id)
         except AssistantError as exc:
+            logger.debug("Failed to generate answer for game_id=%s: %s", payload.game_id, exc)
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=str(exc),
             ) from exc
 
         try:
+            logger.debug("Persisting chat messages for game_id=%s.", payload.game_id)
             await chat_client.create_message(
                 payload.game_id,
                 "user",
@@ -139,17 +194,21 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
                 assistant_response,
                 authorization,
             )
+            logger.debug("Persisted chat messages for game_id=%s.", payload.game_id)
         except ChatServiceError as exc:
+            logger.debug("Failed to persist chat messages for game_id=%s: %s", payload.game_id, exc)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=str(exc),
             ) from exc
 
-        return GenerateChatAnswerResponse(
+        response = GenerateChatAnswerResponse(
             gameId=payload.game_id,
             message=payload.message,
             assistantResponse=assistant_response,
         )
+        logger.debug("Completed chat-answer request for game_id=%s.", payload.game_id)
+        return response
 
     return app
 

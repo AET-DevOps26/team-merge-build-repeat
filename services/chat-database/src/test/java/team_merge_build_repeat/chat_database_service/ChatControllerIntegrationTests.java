@@ -24,19 +24,29 @@ import team_merge_build_repeat.chat_database_service.security.GameAccessVerifica
 import team_merge_build_repeat.chat_database_service.security.GameVerificationUnavailableException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
 @SpringBootTest
 class ChatControllerIntegrationTests {
+	private static final UUID TEST_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+	private static final UUID FORBIDDEN_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
+	private static final UUID INVALID_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000003");
+	private static final UUID UNAVAILABLE_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000004");
+
 	@Autowired
 	private WebApplicationContext context;
 
 	private MockMvc mockMvc;
+
+	private static org.springframework.test.web.servlet.request.RequestPostProcessor jwtForUser(UUID userId) {
+		return jwt().jwt(jwt -> jwt.subject(userId.toString()));
+	}
 
 	@BeforeEach
 	void setUp() {
@@ -70,12 +80,20 @@ class ChatControllerIntegrationTests {
 		@Bean
 		@Primary
 		GameAccessVerificationClient gameAccessVerificationClient() {
-			return (token, gameId) -> switch (token) {
-				case "test-token" -> GameAccessVerificationResult.ALLOWED;
-				case "forbidden-token" -> GameAccessVerificationResult.FORBIDDEN;
-				case "invalid-token" -> GameAccessVerificationResult.UNAUTHORIZED;
-				case "unavailable-token" -> throw new GameVerificationUnavailableException("unavailable", null);
-				default -> GameAccessVerificationResult.UNAUTHORIZED;
+			return (userId, gameId) -> {
+				if (TEST_USER_ID.equals(userId)) {
+					return GameAccessVerificationResult.ALLOWED;
+				}
+				if (FORBIDDEN_USER_ID.equals(userId)) {
+					return GameAccessVerificationResult.FORBIDDEN;
+				}
+				if (INVALID_USER_ID.equals(userId)) {
+					return GameAccessVerificationResult.UNAUTHORIZED;
+				}
+				if (UNAVAILABLE_USER_ID.equals(userId)) {
+					throw new GameVerificationUnavailableException("unavailable", null);
+				}
+				return GameAccessVerificationResult.UNAUTHORIZED;
 			};
 		}
 	}
@@ -85,7 +103,7 @@ class ChatControllerIntegrationTests {
 		UUID gameId = UUID.randomUUID();
 
 		mockMvc.perform(get("/v1/chat/{gameId}", gameId)
-						.header("Authorization", "Bearer test-token"))
+						.with(jwtForUser(TEST_USER_ID)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.gameId").value(gameId.toString()))
 				.andExpect(jsonPath("$.messages").isArray())
@@ -97,7 +115,7 @@ class ChatControllerIntegrationTests {
 		UUID gameId = UUID.randomUUID();
 
 		MvcResult result = mockMvc.perform(post("/v1/chat/{gameId}/messages", gameId)
-						.header("Authorization", "Bearer test-token")
+						.with(jwtForUser(TEST_USER_ID))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{"role":"user","content":"Need a hint"}
@@ -112,7 +130,7 @@ class ChatControllerIntegrationTests {
 				.andReturn();
 
 		mockMvc.perform(get("/v1/chat/{gameId}", gameId)
-						.header("Authorization", "Bearer test-token"))
+						.with(jwtForUser(TEST_USER_ID)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.messages.length()").value(1))
 				.andExpect(jsonPath("$.messages[0].content").value("Need a hint"));
@@ -131,7 +149,7 @@ class ChatControllerIntegrationTests {
 	@Test
 	void getChatForForbiddenGameReturnsForbidden() throws Exception {
 		mockMvc.perform(get("/v1/chat/{gameId}", UUID.randomUUID())
-						.header("Authorization", "Bearer forbidden-token"))
+						.with(jwtForUser(FORBIDDEN_USER_ID)))
 				.andExpect(status().isForbidden())
 				.andExpect(jsonPath("$.status").value(403));
 	}
@@ -141,7 +159,7 @@ class ChatControllerIntegrationTests {
 		UUID gameId = UUID.randomUUID();
 
 		mockMvc.perform(post("/v1/chat/{gameId}/messages", gameId)
-						.header("Authorization", "Bearer forbidden-token")
+						.with(jwtForUser(FORBIDDEN_USER_ID))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{"role":"user","content":"Should not be stored"}
@@ -149,7 +167,7 @@ class ChatControllerIntegrationTests {
 				.andExpect(status().isForbidden());
 
 		mockMvc.perform(get("/v1/chat/{gameId}", gameId)
-						.header("Authorization", "Bearer test-token"))
+						.with(jwtForUser(TEST_USER_ID)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.messages").isEmpty());
 	}
@@ -157,7 +175,7 @@ class ChatControllerIntegrationTests {
 	@Test
 	void getChatWithInvalidTokenReturnsUnauthorized() throws Exception {
 		mockMvc.perform(get("/v1/chat/{gameId}", UUID.randomUUID())
-						.header("Authorization", "Bearer invalid-token"))
+						.with(jwtForUser(INVALID_USER_ID)))
 				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.status").value(401));
 	}
@@ -165,7 +183,7 @@ class ChatControllerIntegrationTests {
 	@Test
 	void getChatWhenVerificationIsUnavailableReturnsServiceUnavailable() throws Exception {
 		mockMvc.perform(get("/v1/chat/{gameId}", UUID.randomUUID())
-						.header("Authorization", "Bearer unavailable-token"))
+						.with(jwtForUser(UNAVAILABLE_USER_ID)))
 				.andExpect(status().isServiceUnavailable())
 				.andExpect(jsonPath("$.status").value(503));
 	}
@@ -173,7 +191,7 @@ class ChatControllerIntegrationTests {
 	@Test
 	void invalidRequestBodyReturnsBadRequest() throws Exception {
 		mockMvc.perform(post("/v1/chat/{gameId}/messages", UUID.randomUUID())
-						.header("Authorization", "Bearer test-token")
+						.with(jwtForUser(TEST_USER_ID))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{"role":"user","content":""}
@@ -187,7 +205,7 @@ class ChatControllerIntegrationTests {
 		UUID gameId = UUID.randomUUID();
 
 		mockMvc.perform(post("/v1/chat/{gameId}/messages", gameId)
-						.header("Authorization", "Bearer test-token")
+						.with(jwtForUser(TEST_USER_ID))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 								{"role":"user","content":"First"}
@@ -195,7 +213,7 @@ class ChatControllerIntegrationTests {
 				.andExpect(status().isCreated());
 
 		mockMvc.perform(post("/v1/chat/{gameId}/messages", gameId)
-						.header("Authorization", "Bearer test-token")
+						.with(jwtForUser(TEST_USER_ID))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 								{"role":"assistant","content":"Second"}
@@ -203,7 +221,7 @@ class ChatControllerIntegrationTests {
 				.andExpect(status().isCreated());
 
 		mockMvc.perform(get("/v1/chat/{gameId}", gameId)
-						.header("Authorization", "Bearer test-token"))
+						.with(jwtForUser(TEST_USER_ID)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.messages[0].content").value("First"))
 				.andExpect(jsonPath("$.messages[1].content").value("Second"));

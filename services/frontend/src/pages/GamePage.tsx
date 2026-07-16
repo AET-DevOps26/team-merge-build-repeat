@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { Header, BottomNav } from "@/components/navigation"
 import { SudokuGrid, NumberPad } from "@/components/game"
 import { GameChat } from "@/components/chat"
+import { useAuth } from "@/src/auth/auth-context"
 
 const EMPTY_GRID = Array.from({ length: 9 }, () => Array(9).fill(0))
 
@@ -56,6 +57,7 @@ async function fetchSolution(puzzle: number[][]): Promise<number[][]> {
 }
 
 export default function GamePage() {
+  const { accessToken } = useAuth()
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null)
   const [puzzle, setPuzzle] = useState<number[][]>(EMPTY_GRID)
   const [initialMarks, setInitialMarks] = useState<number[][][]>([])
@@ -277,7 +279,9 @@ export default function GamePage() {
 
       <main className="flex-1 flex flex-row items-stretch px-4 py-4 pb-32 gap-4 min-h-0 overflow-hidden">
         <div className="flex-1 hidden md:flex flex-col min-h-0">
-          <GameChat gameId={GAME_ID} board={grid} candidates={pencilMarks} />
+          {accessToken && (
+            <GameChat gameId={GAME_ID} accessToken={accessToken} />
+          )}
         </div>
 
         <div className="flex items-center justify-center min-h-0 flex-shrink-0">

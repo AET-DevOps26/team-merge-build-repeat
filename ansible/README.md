@@ -39,23 +39,21 @@ is responsible for provisioning that host in the standard production workflow.
 
 ## GitHub Actions Deployment
 
-The manual workflow `.github/workflows/deploy-prod-ansible.yaml` deploys the
-Docker host stack from `main`.
+The manual workflow `.github/workflows/deploy-prod-ansible.yaml` is started from
+`main` and deploys the Docker host stack from the selected Git release tag.
 
 Run `Terraform` first to create or update the Azure VM and remote state backed
-infrastructure. Then run `Deploy Production` with an image tag such as:
+infrastructure. Then run `Deploy Production` with a Git release tag such as:
 
 ```text
 v1.2.3
-1.2.3
 v1.2.3-rc.1
-1.2.3-rc.1
 ```
 
-The workflow normalizes a leading `v` away before passing `IMAGE_TAG` to
-Ansible, so `v1.2.3` deploys images tagged `1.2.3`. It reads the VM public IP
-and admin username from Terraform output, builds a temporary inventory, installs
-`ansible-core`, configures the SSH key, and runs:
+The workflow checks out the selected tag and removes its leading `v` before
+passing `IMAGE_TAG` to Ansible, so `v1.2.3` deploys images tagged `1.2.3`. It
+reads the VM public IP and admin username from Terraform output, builds a
+temporary inventory, installs `ansible-core`, configures the SSH key, and runs:
 
 ```sh
 ansible-playbook -i inventory.ini ansible/playbook.yml

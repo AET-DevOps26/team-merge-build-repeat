@@ -3,10 +3,8 @@ package com.sudokuai.merge_build_repeat.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.UUID;
+
 
 @Entity
 @Table(name = "game_history")
@@ -16,11 +14,12 @@ import java.util.List;
 @NoArgsConstructor
 public class GameHistory {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; //Different for each record
+    @GeneratedValue
+    @Column(columnDefinition = "uuid", updatable = false, nullable = false)
+    private UUID id; //Different for each record
 
     @Column(nullable = false)
-    private Long gameId; //Same for all records of the same game
+    private UUID gameId; //Same for all records of the same game
 
     @Column(nullable = false)
     private Integer row;
@@ -31,15 +30,10 @@ public class GameHistory {
     @Column(nullable = false)
     private Integer value;
 
-    public GameHistory(Long gameId, Integer row, Integer col, Integer value) {
+    public GameHistory(UUID gameId, Integer row, Integer col, Integer value) {
         this.gameId = gameId;
         this.row = row;
         this.col = col;
         this.value = value;
     }
-
-    @ManyToOne(cascade = CascadeType.ALL)
-    private GameProperties properties;
-
-
 }

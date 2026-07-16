@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any, Protocol
 
+import httpx
 from langchain_core.messages import (
     AIMessage,
     BaseMessage,
@@ -12,12 +14,24 @@ from langchain_core.messages import (
 )
 
 from genai_service.mcp_server import mcp
-from genai_service.schemas import ChatMessage, GenerateChatAnswerRequest, JsonBoard
+from genai_service.schemas import (
+    ChatMessage,
+    GenerateChatAnswerRequest,
+    JsonBoard,
+    JsonCandidateBoard,
+)
 from genai_service.settings import Settings
+
+
+logger = logging.getLogger("genai_service.assistant")
 
 
 class AssistantError(RuntimeError):
     pass
+
+
+class AssistantInfrastructureError(AssistantError):
+    """Raised when an LLM or MCP dependency is unavailable."""
 
 
 class SudokuAssistant(Protocol):
@@ -26,6 +40,9 @@ class SudokuAssistant(Protocol):
         request: GenerateChatAnswerRequest,
         history: list[ChatMessage],
         solution: JsonBoard,
+        template: JsonBoard,
+        board: JsonBoard,
+        candidates: JsonCandidateBoard,
     ) -> str:
         pass
 
@@ -47,19 +64,41 @@ class LangChainSudokuAssistant:
         request: GenerateChatAnswerRequest,
         history: list[ChatMessage],
         solution: JsonBoard,
+        template: JsonBoard,
+        board: JsonBoard,
+        candidates: JsonCandidateBoard,
     ) -> str:
-        messages = self._build_messages(request, history, solution)
+        messages = self._build_messages(
+            request, history, solution, template, board, candidates
+        )
+        logger.debug(
+            "Prepared assistant context: history_messages=%d, prompt_messages=%d.",
+            len(history),
+            len(messages),
+        )
 
         if self._chat_model is not None:
-            return await self._answer_with_model(messages)
+            try:
+                response = await self._answer_with_model(messages)
+            except AssistantInfrastructureError:
+                logger.debug("Model infrastructure is unavailable; using MCP fallback.")
+                return await self._answer_with_mcp_fallback(board, candidates, solution)
+            if response:
+                return response
+            logger.debug("Model completed without a final text response.")
+            raise AssistantError("Assistant returned an empty response.")
 
-        return await self._answer_with_mcp_fallback(request, solution)
+        logger.debug("No chat model is configured; using MCP fallback.")
+        return await self._answer_with_mcp_fallback(board, candidates, solution)
 
     def _build_messages(
         self,
         request: GenerateChatAnswerRequest,
         history: list[ChatMessage],
         solution: JsonBoard,
+        template: JsonBoard,
+        board: JsonBoard,
+        candidates: JsonCandidateBoard,
     ) -> list[BaseMessage]:
         messages: list[BaseMessage] = [
             SystemMessage(
@@ -78,9 +117,10 @@ class LangChainSudokuAssistant:
                 messages.append(HumanMessage(content=message.content))
 
         state = {
-            "board": request.board,
+            "board": board,
+            "template": template,
             "solution": solution,
-            "candidates": request.candidates,
+            "candidates": candidates,
             "question": request.message,
         }
         messages.append(
@@ -96,6 +136,11 @@ class LangChainSudokuAssistant:
     async def _answer_with_model(self, messages: list[BaseMessage]) -> str:
         try:
             tools = await self._load_mcp_tools()
+            logger.debug(
+                "Loaded %d MCP tools: %s.",
+                len(tools),
+                ", ".join(tool.name for tool in tools) or "none",
+            )
             model = self._chat_model
             if model is None:
                 raise AssistantError("No model provided")
@@ -103,11 +148,52 @@ class LangChainSudokuAssistant:
                 model = model.bind_tools(tools)
 
             tools_by_name = {tool.name: tool for tool in tools}
-            for _ in range(self._MAX_TOOL_ROUNDS):
-                response = await model.ainvoke(messages)
-                tool_calls = getattr(response, "tool_calls", [])
+            for round_number in range(1, self._MAX_TOOL_ROUNDS + 1):
+                try:
+                    logger.debug(
+                        "Requesting model response: tool_round=%d, message_count=%d.",
+                        round_number,
+                        len(messages),
+                    )
+                    response = await model.ainvoke(messages)
+                except Exception as exc:
+                    if self._is_infrastructure_error(exc):
+                        raise AssistantInfrastructureError(
+                            "Language model is unavailable."
+                        ) from exc
+                    raise AssistantError("Language model request failed.") from exc
+                tool_calls = getattr(response, "tool_calls", []) or []
+                content = self._response_content(response)
+                logger.debug(
+                    "Received model response: tool_round=%d, content_length=%d, "
+                    "tool_call_count=%d, tool_names=%s, finish_reason=%s.",
+                    round_number,
+                    len(content),
+                    len(tool_calls),
+                    ", ".join(
+                        str(tool_call.get("name", "unknown"))
+                        for tool_call in tool_calls
+                        if isinstance(tool_call, dict)
+                    )
+                    or "none",
+                    self._finish_reason(response),
+                )
+                logger.debug(
+                    "Model response parser diagnostics: invalid_tool_call_count=%d, "
+                    "invalid_tool_call_fields=%s, additional_kwarg_keys=%s, "
+                    "additional_kwarg_shapes=%s, response_metadata_keys=%s.",
+                    len(getattr(response, "invalid_tool_calls", []) or []),
+                    self._field_sets(
+                        getattr(response, "invalid_tool_calls", []) or []
+                    ),
+                    self._mapping_keys(getattr(response, "additional_kwargs", {})),
+                    self._mapping_shapes(
+                        getattr(response, "additional_kwargs", {})
+                    ),
+                    self._mapping_keys(getattr(response, "response_metadata", {})),
+                )
                 if not tool_calls:
-                    return self._response_content(response)
+                    return content
 
                 messages.append(response)
                 for tool_call in tool_calls:
@@ -118,7 +204,19 @@ class LangChainSudokuAssistant:
                             f"Model requested unknown Sudoku tool: {tool_name}."
                         )
 
+                    arguments = tool_call["args"]
+                    logger.debug(
+                        "Invoking MCP tool: name=%s, argument_keys=%s.",
+                        tool_name,
+                        self._argument_keys(arguments),
+                    )
                     result = await tool.ainvoke(tool_call["args"])
+                    logger.debug(
+                        "MCP tool completed: name=%s, result_type=%s, result_keys=%s.",
+                        tool_name,
+                        type(result).__name__,
+                        self._result_keys(result),
+                    )
                     messages.append(
                         ToolMessage(
                             content=json.dumps(result, default=str),
@@ -128,9 +226,95 @@ class LangChainSudokuAssistant:
         except Exception as exc:
             if isinstance(exc, AssistantError):
                 raise
+            if self._is_infrastructure_error(exc):
+                raise AssistantInfrastructureError(
+                    "Sudoku MCP service is unavailable."
+                ) from exc
             raise AssistantError("Assistant orchestration failed.") from exc
 
         raise AssistantError("Assistant reached the maximum number of tool rounds.")
+
+    @staticmethod
+    def _finish_reason(response: Any) -> str:
+        metadata = getattr(response, "response_metadata", {})
+        if not isinstance(metadata, dict):
+            return "unknown"
+        return str(metadata.get("finish_reason", metadata.get("stop_reason", "unknown")))
+
+    @staticmethod
+    def _argument_keys(arguments: Any) -> str:
+        if isinstance(arguments, dict):
+            return ", ".join(sorted(str(key) for key in arguments)) or "none"
+        return "non-object"
+
+    @staticmethod
+    def _result_keys(result: Any) -> str:
+        if isinstance(result, dict):
+            return ", ".join(sorted(str(key) for key in result)) or "none"
+        return "not-applicable"
+
+    @staticmethod
+    def _mapping_keys(value: Any) -> str:
+        if not isinstance(value, dict):
+            return "not-a-mapping"
+        return ", ".join(sorted(str(key) for key in value)) or "none"
+
+    @classmethod
+    def _mapping_shapes(cls, value: Any) -> str:
+        if not isinstance(value, dict):
+            return "not-a-mapping"
+        return "; ".join(
+            f"{key}={cls._value_shape(item)}" for key, item in sorted(value.items())
+        ) or "none"
+
+    @staticmethod
+    def _field_sets(values: list[Any]) -> str:
+        field_sets = [
+            ", ".join(sorted(str(key) for key in value))
+            for value in values
+            if isinstance(value, dict)
+        ]
+        return "; ".join(field_sets) or "none"
+
+    @staticmethod
+    def _value_shape(value: Any) -> str:
+        if isinstance(value, dict):
+            return f"object({', '.join(sorted(str(key) for key in value)) or 'empty'})"
+        if isinstance(value, list):
+            if value and isinstance(value[0], dict):
+                fields = ", ".join(sorted(str(key) for key in value[0])) or "empty"
+                return f"list[{len(value)}](object({fields}))"
+            return f"list[{len(value)}]"
+        return type(value).__name__
+
+    @staticmethod
+    def _is_infrastructure_error(exc: Exception) -> bool:
+        """Recognize transport failures without masking agent or tool errors."""
+        current: BaseException | None = exc
+        while current is not None:
+            if isinstance(current, httpx.HTTPStatusError):
+                status_code = current.response.status_code
+                if status_code == 408 or status_code == 429 or status_code >= 500:
+                    return True
+            elif isinstance(
+                current,
+                (httpx.TransportError, OSError, TimeoutError),
+            ):
+                return True
+            status_code = getattr(current, "status_code", None)
+            if status_code == 408 or status_code == 429 or (
+                isinstance(status_code, int) and status_code >= 500
+            ):
+                return True
+            if type(current).__name__ in {
+                "APIConnectionError",
+                "APITimeoutError",
+                "InternalServerError",
+                "ServiceUnavailableError",
+            }:
+                return True
+            current = current.__cause__ or current.__context__
+        return False
 
     @staticmethod
     def _response_content(response: Any) -> str:
@@ -158,16 +342,17 @@ class LangChainSudokuAssistant:
 
     async def _answer_with_mcp_fallback(
         self,
-        request: GenerateChatAnswerRequest,
+        board: JsonBoard,
+        candidates: JsonCandidateBoard,
         solution: JsonBoard,
     ) -> str:
         try:
             result = await mcp.call_tool(
                 "find_next_step",
                 {
-                    "board": request.board,
+                    "board": board,
                     "solution": solution,
-                    "candidate_board": request.candidates,
+                    "candidate_board": candidates,
                 },
             )
         except Exception as exc:

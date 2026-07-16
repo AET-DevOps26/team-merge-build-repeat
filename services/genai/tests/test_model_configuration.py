@@ -8,6 +8,7 @@ from genai_service.settings import Settings
 
 def test_openai_provider_uses_langchain_chat_openai() -> None:
     settings = Settings(
+        root_path="",
         chat_service_url="http://chat-service",
         game_service_url="http://game-service",
         mcp_command="python",
@@ -26,4 +27,3 @@ def test_openai_provider_uses_langchain_chat_openai() -> None:
     assert model.model_name == "gpt-4o-mini"
     assert str(model.openai_api_base) == "https://openai.example/v1"
     assert model.temperature == 0
-

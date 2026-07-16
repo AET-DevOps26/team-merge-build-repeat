@@ -22,36 +22,29 @@ def test_generate_chat_answer_request_accepts_valid_payload() -> None:
     request = GenerateChatAnswerRequest.model_validate(
         {
             "gameId": str(game_id),
-            "board": empty_board(),
-            "candidates": empty_candidates(),
-            "message": "Was nun?",
+                "message": "Was nun?",
         }
     )
 
     assert request.game_id == game_id
 
 
-def test_generate_chat_answer_request_rejects_invalid_candidates_shape() -> None:
+def test_generate_chat_answer_request_rejects_client_supplied_game_state() -> None:
     with pytest.raises(ValidationError):
         GenerateChatAnswerRequest.model_validate(
             {
                 "gameId": str(uuid4()),
                 "board": empty_board(),
-                "candidates": [[[] for _ in range(9)] for _ in range(8)],
                 "message": "Was nun?",
             }
         )
 
 
-def test_generate_chat_answer_request_rejects_out_of_range_values() -> None:
-    board = empty_board()
-    board[0][0] = 10
-
+def test_generate_chat_answer_request_rejects_unknown_fields() -> None:
     with pytest.raises(ValidationError):
         GenerateChatAnswerRequest.model_validate(
             {
                 "gameId": str(uuid4()),
-                "board": board,
                 "candidates": empty_candidates(),
                 "message": "Was nun?",
             }

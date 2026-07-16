@@ -38,37 +38,15 @@ Request body:
 ```json
 {
   "gameId": "00000000-0000-0000-0000-000000000000",
-  "board": [
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0]
-  ],
-  "candidates": [
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []],
-    [[], [], [], [], [], [], [], [], []]
-  ],
   "message": "What is the next step?"
 }
 ```
 
-`board` must be a 9x9 integer grid using `0` for empty cells. `candidates`
-must be a 9x9 grid where each cell contains candidate integers. The service
-reads the existing chat from the chat database service, generates an assistant
-answer using the Sudoku MCP tools, then stores the user message and assistant
-response.
+The service retrieves the current board from `GET /games/{gameId}/state` and
+the candidates from `GET /games/{gameId}/pencil-marks` on `GAME_SERVICE_URL`.
+It reads the existing chat from the chat database service, generates an
+assistant answer using the Sudoku MCP tools, then stores the user message and
+assistant response.
 
 Configuration:
 
@@ -80,12 +58,35 @@ LLM_PROVIDER=ollama
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=smollm2:135m
 GAME_SERVICE_URL=http://localhost:8080
+GENAI_DEBUG=false
 ```
 
+Set `GENAI_DEBUG=true` (or `DEBUG=true`) to log the full chat-answer processing
+flow: authorization validation, downstream data retrieval, answer generation,
+and message persistence. Tokens, authorization headers, API keys, and message
+contents are never written to these logs.
+
 Before calculating a Sudoku strategy, the service retrieves the solved board
-from `GET /v1/games/{gameId}/solution` on `GAME_SERVICE_URL`. The endpoint must
-return `{ "gameId": "...", "solution": [[...]] }` and receives the caller's
-`Authorization` header.
+from `GET /games/{gameId}/solution` and the original puzzle template from
+`GET /games/{gameId}/template` on `GAME_SERVICE_URL`. `GAME_SERVICE_URL` may
+include an Application context path such as `http://application:8080/application`.
+Both endpoints receive the caller's `Authorization` header.
+
+Application is the data source for game state, template, and solution. Sudoku
+validation for assistant answers is intentionally local to GenAI: the local MCP
+server validates the current board and candidates against the loaded solution
+before a strategy is selected.
+
+The current Application service returns a raw 9x9 board matrix. GenAI also
+accepts object responses for forward compatibility:
+
+```json
+{ "gameId": "...", "solution": [[...]] }
+```
+
+```json
+{ "gameId": "...", "template": [[...]] }
+```
 
 ## MCP server
 

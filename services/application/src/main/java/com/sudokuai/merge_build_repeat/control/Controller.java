@@ -5,23 +5,26 @@ import com.sudokuai.merge_build_repeat.dto.*;
 //import com.sudokuai.merge_build_repeat.dto.Move;
 
 import com.sudokuai.merge_build_repeat.model.GameProperties;
-import com.sudokuai.merge_build_repeat.service.GameHistoryService;
-import com.sudokuai.merge_build_repeat.service.GamePropertiesService;
-import com.sudokuai.merge_build_repeat.service.GameTemplateService;
+import com.sudokuai.merge_build_repeat.service.*;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 
 @RestController
 @AllArgsConstructor
+@RequestMapping("/v1")
 public class Controller {
 
     GameTemplateService gameTemplateService;
     GamePropertiesService gamePropertiesService;
     GameHistoryService gameHistoryService;
+    AccountService accountService;
+    PencilMarksService pencilMarksService;
 
 
     @GetMapping(value = "/newTemplate", produces = "text/plain")
@@ -30,93 +33,95 @@ public class Controller {
         return "You just created a new template! Check the database to see it.";
     }
 
-    @GetMapping(value = "/newGame", produces = "text/plain")
-    public Long createNewGameID() {
-        Long id = System.currentTimeMillis();
-
-        return id;
-    }
-
-
     @PutMapping(value = "/updateGame/{gameId}", produces = "text/plain")
-    public String updateGame(@PathVariable Long gameId, Move move) {
-        gameHistoryService.saveGameHistory(gameId, move.row(), move.col(), move.value());
-        gamePropertiesService.updateGameProperties(gameId, "Updated state at " + System.currentTimeMillis());
+    public String updateGame(@PathVariable UUID gameId, @RequestBody Move move) {
+        saveAndUpdate(gameId, move);
         return "You just updated a game! Check the database to see it.";
     }
 
     @GetMapping("/games/random")
     public ResponseEntity<GameResponse> getRandomGame(@RequestParam String difficulty) {
-        return ResponseEntity.ok(gameTemplateService.getRandomGameByDifficulty(difficulty));
+        GameResponse newGame = gameTemplateService.getRandomGameByDifficulty(difficulty);
+        gamePropertiesService.saveNewGameProperties(newGame.gameId(), null, null);
+        return ResponseEntity.ok(newGame);
     }
 
     @GetMapping("/templates/{templateId}/new-game")
-    public ResponseEntity<GameResponse> getNewGameByTemplateId(@PathVariable Long templateId) {
+    public ResponseEntity<GameResponse> getNewGameByTemplateId(@PathVariable UUID templateId) {
         return ResponseEntity.ok(gameTemplateService.createNewGameFromTemplate(templateId));
     }
 
     @GetMapping("/games/{gameId}/state")
-    public ResponseEntity<List<List<Integer>>> getCurrentState(@PathVariable Long gameId) {
+    public ResponseEntity<List<List<Integer>>> getCurrentState(@PathVariable UUID gameId) {
         return ResponseEntity.ok((List<List<Integer>>) gamePropertiesService.getCurrentState(gameId));
     }
 
     @GetMapping("/games/{gameId}/solution")
-    public ResponseEntity<List<List<Integer>>> getSolution(@PathVariable Long gameId) {
+    public ResponseEntity<List<List<Integer>>> getSolution(@PathVariable UUID gameId) {
         return ResponseEntity.ok(gamePropertiesService.getSolution(gameId));
     }
 
     @GetMapping("/games/{gameId}/template")
-    public ResponseEntity<List<List<Integer>>> getTemplate(@PathVariable Long gameId) {
+    public ResponseEntity<List<List<Integer>>> getTemplate(@PathVariable UUID gameId) {
         return ResponseEntity.ok(gamePropertiesService.getTemplateData(gameId));
     }
 
     @PostMapping("/games/{gameId}/history")
-    public ResponseEntity<Boolean> updateGameHistory(@PathVariable Long gameId, @RequestBody Move move) {
-        // Walidacja w serwisie (konwersja indeksów z 1 na 0 w logice biznesowej)
+    public ResponseEntity<Boolean> updateGameHistory(@PathVariable UUID gameId, @RequestBody Move move) {
         boolean isValid = gameHistoryService.validateAndSaveMove(gameId, move.row(), move.col(), move.value());
         return ResponseEntity.ok(isValid);
     }
 
     @PutMapping("/games/{gameId}/pencil-marks")
-    public ResponseEntity<Boolean> updatePencilMarks(@PathVariable Long gameId, @RequestBody PencilMarkRequest mark) {
-        boolean isValidInTemplate = gamePropertiesService.updatePencilMark(gameId, mark.row(), mark.column(), mark.value());
+    public ResponseEntity<Boolean> updatePencilMarks(@PathVariable UUID gameId, @RequestBody PencilMarkRequest mark) {
+        boolean isValidInTemplate = pencilMarksService.updatePencilMark(gameId, mark.row(), mark.column(), mark.value());
         return ResponseEntity.ok(isValidInTemplate);
     }
 
     @DeleteMapping("/games/{gameId}/pencil-marks")
-    public ResponseEntity<Void> deletePencilMarks(@PathVariable Long gameId, @RequestBody PencilMarkRequest mark) {
-        gamePropertiesService.deletePencilMark(gameId, mark.row(), mark.column(), mark.value());
+    public ResponseEntity<Void> deletePencilMarks(@PathVariable UUID gameId, @RequestBody PencilMarkRequest mark) {
+        pencilMarksService.deletePencilMark(gameId, mark.row(), mark.column(), mark.value());
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/games/{gameId}/pencil-marks")
-    public ResponseEntity<List<List<List<Integer>>>> getCurrentStatePencilMarks(@PathVariable Long gameId) {
-        // Zwraca matrycę 3D (dla każdej komórki lista wpisanych ołówkiem cyfr)
-        return ResponseEntity.ok(gamePropertiesService.getPencilMarks(gameId));
+    public ResponseEntity<List<List<List<Integer>>>> getCurrentStatePencilMarks(@PathVariable UUID gameId) {
+        return ResponseEntity.ok(pencilMarksService.getPencilMarks(gameId));
     }
 
     @GetMapping("/games/{gameId}/history")
-    public ResponseEntity<List<HistoryRecord>> getHistory(@PathVariable Long gameId) {
+    public ResponseEntity<List<HistoryRecord>> getHistory(@PathVariable UUID gameId) {
         return ResponseEntity.ok(gameHistoryService.getHistoryRecords(gameId));
     }
 
-//    @PostMapping("/users/account")
-//    public ResponseEntity<Void> createAccount(@RequestHeader("Authorization") String token) {
-//        // Wyciągamy userId z JWT i tworzymy/aktualizujemy konto
-//        userService.createOrUpdateAccount(token);
-//        return ResponseEntity.ok().build();
-//    }
+    @PostMapping("/users/account")
+    public ResponseEntity<Void> createAccount(UUID userId) {
+        accountService.createAccount(userId);
+        return ResponseEntity.ok().build();
+    }
 
-//    @GetMapping("/users/latest-game")
-//    public ResponseEntity<Long> getLatestGameId(@RequestHeader("Authorization") String token) {
-//        Long latestGameId = userService.getLatestGameIdForUser(token);
-//        return ResponseEntity.ok(latestGameId);
-//    }
+    @PutMapping("/users/account")
+    public ResponseEntity<Void> updateAccount(UUID userId, UUID gameId) {
+        accountService.updateAccount(userId, gameId);
+        return ResponseEntity.ok().build();
+    }
 
-//    @GetMapping("/games/{gameId}/verify")
-//    public ResponseEntity<Boolean> verifyGameId(@RequestHeader("Authorization") String token, @PathVariable Long gameId) {
-//        boolean isValid = userService.verifyUserGameAccess(token, gameId);
-//        return ResponseEntity.ok(isValid);
-//    }
+    @GetMapping("/users/latest-game")
+    public ResponseEntity<UUID> getLatestGameId(@RequestParam UUID userId) {
+        UUID latestGameId = accountService.getLatestGameId(userId);
+        return ResponseEntity.ok(latestGameId);
+    }
+
+    @GetMapping("/games/{gameId}/verify")
+    public ResponseEntity<Boolean> verifyGameId(@PathVariable UUID gameId, @RequestParam UUID userId) {
+        boolean isValid = accountService.verifyUserGameAccess(gameId, userId);
+        return ResponseEntity.ok(isValid);
+    }
+
+    @Transactional
+    public void saveAndUpdate(UUID gameId, Move move) {
+        gameHistoryService.saveGameHistory(gameId, move.row(), move.col(), move.value());
+        gamePropertiesService.updateGameProperties(gameId, move.row(), move.col(), move.value());
+    }
 
 }

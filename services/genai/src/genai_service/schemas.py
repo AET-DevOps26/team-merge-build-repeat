@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator
 
 
 JsonBoard = list[list[int]]
@@ -23,33 +23,7 @@ class GenerateChatAnswerRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     game_id: UUID = Field(alias="gameId")
-    board: JsonBoard
-    candidates: JsonCandidateBoard
     message: str = Field(min_length=1, max_length=10000)
-
-    @field_validator("board")
-    @classmethod
-    def validate_board(cls, board: JsonBoard) -> JsonBoard:
-        _validate_grid_shape(board, "board")
-        for row in board:
-            for value in row:
-                if value < 0 or value > 9:
-                    raise ValueError("board values must be between 0 and 9.")
-        return board
-
-    @field_validator("candidates")
-    @classmethod
-    def validate_candidates(
-        cls,
-        candidates: JsonCandidateBoard,
-    ) -> JsonCandidateBoard:
-        _validate_grid_shape(candidates, "candidates")
-        for row in candidates:
-            for cell in row:
-                for value in cell:
-                    if value < 1 or value > 9:
-                        raise ValueError("candidate values must be between 1 and 9.")
-        return candidates
 
 
 class GameSolutionResponse(BaseModel):
@@ -67,6 +41,49 @@ class GameSolutionResponse(BaseModel):
                 if value < 0 or value > 9:
                     raise ValueError("solution values must be between 0 and 9.")
         return solution
+
+
+class GameTemplateResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    game_id: UUID = Field(alias="gameId")
+    template: JsonBoard
+
+    @field_validator("template")
+    @classmethod
+    def validate_template(cls, template: JsonBoard) -> JsonBoard:
+        _validate_grid_shape(template, "template")
+        for row in template:
+            for value in row:
+                if value < 0 or value > 9:
+                    raise ValueError("template values must be between 0 and 9.")
+        return template
+
+
+class JsonBoardResponse(RootModel[JsonBoard]):
+    @field_validator("root")
+    @classmethod
+    def validate_board(cls, board: JsonBoard) -> JsonBoard:
+        _validate_grid_shape(board, "board")
+        for row in board:
+            for value in row:
+                if value < 0 or value > 9:
+                    raise ValueError("board values must be between 0 and 9.")
+        return board
+
+
+class JsonCandidateBoardResponse(RootModel[JsonCandidateBoard]):
+    @field_validator("root")
+    @classmethod
+    def validate_candidates(cls, candidates: JsonCandidateBoard) -> JsonCandidateBoard:
+        _validate_grid_shape(candidates, "candidates")
+        for row in candidates:
+            for cell in row:
+                for value in cell:
+                    if value < 1 or value > 9:
+                        raise ValueError("candidate values must be between 1 and 9.")
+        return candidates
+
 
 class GenerateChatAnswerResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)

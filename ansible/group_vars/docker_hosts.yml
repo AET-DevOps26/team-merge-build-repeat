@@ -9,6 +9,8 @@ chat_context_path: "{{ lookup('env', 'CHAT_CONTEXT_PATH') | default('/chat', tru
 genai_llm_provider: "{{ lookup('env', 'LLM_PROVIDER') | default('openai', true) }}"
 genai_root_path: "{{ lookup('env', 'GENAI_ROOT_PATH') | default('/genai', true) }}"
 game_engine_root_path: "{{ lookup('env', 'GAME_ENGINE_ROOT_PATH') | default('/game-engine', true) }}"
+supabase_auth_issuer: "{{ lookup('env', 'SUPABASE_AUTH_ISSUER') | default('https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1', true) }}"
+supabase_auth_jwks_uri: "{{ lookup('env', 'SUPABASE_AUTH_JWKS_URI') | default('https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1/.well-known/jwks.json', true) }}"
 
 app_domain: "{{ lookup('env', 'DOMAIN') }}"
 app_image_tag: "{{ lookup('env', 'IMAGE_TAG') }}"

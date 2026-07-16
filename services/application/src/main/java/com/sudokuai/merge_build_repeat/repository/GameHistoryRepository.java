@@ -1,11 +1,14 @@
 package com.sudokuai.merge_build_repeat.repository;
 
 import com.sudokuai.merge_build_repeat.model.GameHistory;
-import com.sudokuai.merge_build_repeat.model.GameTemplate;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-@Repository
-public interface GameHistoryRepository extends JpaRepository<GameHistory, Long> {
+import java.util.List;
+import java.util.UUID;
 
+@Repository
+public interface GameHistoryRepository extends JpaRepository<GameHistory, UUID> {
+
+    List<GameHistory> findByGameId(UUID gameId);
 }

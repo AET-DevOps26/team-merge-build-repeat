@@ -4,7 +4,14 @@ from uuid import UUID
 
 import httpx
 
-from genai_service.schemas import GameSolutionResponse, JsonBoard
+from genai_service.schemas import (
+    GameSolutionResponse,
+    GameTemplateResponse,
+    JsonBoard,
+    JsonBoardResponse,
+    JsonCandidateBoard,
+    JsonCandidateBoardResponse,
+)
 
 
 class GameServiceError(RuntimeError):
@@ -14,7 +21,7 @@ class GameServiceError(RuntimeError):
 
 
 class GameServiceClient:
-    """Stub client for the service that owns Sudoku game solutions."""
+    """HTTP client for the Application service that owns Sudoku game data."""
 
     def __init__(
         self,
@@ -35,7 +42,41 @@ class GameServiceClient:
             f"/v1/games/{game_id}/solution",
             authorization=authorization,
         )
-        return GameSolutionResponse.model_validate(response.json()).solution
+        data = response.json()
+        if isinstance(data, list):
+            return JsonBoardResponse.model_validate(data).root
+        return GameSolutionResponse.model_validate(data).solution
+
+    async def get_template(self, game_id: UUID, authorization: str) -> JsonBoard:
+        response = await self._request(
+            "GET",
+            f"/v1/games/{game_id}/template",
+            authorization=authorization,
+        )
+        data = response.json()
+        if isinstance(data, list):
+            return JsonBoardResponse.model_validate(data).root
+        return GameTemplateResponse.model_validate(data).template
+
+    async def get_state(self, game_id: UUID, authorization: str) -> JsonBoard:
+        response = await self._request(
+            "GET",
+            f"/v1/games/{game_id}/state",
+            authorization=authorization,
+        )
+        return JsonBoardResponse.model_validate(response.json()).root
+
+    async def get_pencil_marks(
+        self,
+        game_id: UUID,
+        authorization: str,
+    ) -> JsonCandidateBoard:
+        response = await self._request(
+            "GET",
+            f"/v1/games/{game_id}/pencil-marks",
+            authorization=authorization,
+        )
+        return JsonCandidateBoardResponse.model_validate(response.json()).root
 
     async def aclose(self) -> None:
         if self._owns_client:
