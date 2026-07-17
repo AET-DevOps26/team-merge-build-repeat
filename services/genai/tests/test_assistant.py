@@ -11,6 +11,7 @@ from genai_service.assistant import (
     AssistantError,
     AssistantInfrastructureError,
     LangChainSudokuAssistant,
+    SYSTEM_PROMPT,
 )
 from genai_service.schemas import GenerateChatAnswerRequest
 from genai_service.settings import Settings
@@ -97,6 +98,8 @@ def test_prompt_contains_template_and_solution_for_local_validation_context() ->
         empty_board(),
         empty_candidates(),
     )
+    assert messages[0].content == SYSTEM_PROMPT
+    assert "find_next_step" in messages[0].content
     state_json = messages[-1].content.split("\n", maxsplit=1)[1]
     state = json.loads(state_json)
 
