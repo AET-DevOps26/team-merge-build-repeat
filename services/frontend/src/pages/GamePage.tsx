@@ -378,8 +378,14 @@ export default function GamePage() {
     if (gameId) {
       if (lastMove.type === "pencil") {
         enqueueMutation(() => sendGameMutation(`/application/v1/games/${gameId}/pencil-mark-history`, accessToken, "DELETE"))
-      } else if (lastMove.type === "number" || lastMove.type === "batch") {
+      } else if (lastMove.type === "number") {
         enqueueMutation(() => sendGameMutation(`/application/v1/games/${gameId}/history`, accessToken, "DELETE"))
+      } else if (lastMove.type === "batch") {
+        enqueueMutation(async () => {
+          for (const _ of lastMove.moves) {
+            await sendGameMutation(`/application/v1/games/${gameId}/history`, accessToken, "DELETE")
+          }
+        })
       }
     }
   }
@@ -400,11 +406,13 @@ export default function GamePage() {
         row: moveToRedo.row, col: moveToRedo.col, value: moveToRedo.value,
       }))
     } else if (moveToRedo.type === "batch") {
-      for (const move of moveToRedo.moves) {
-        enqueueMutation(() => sendGameMutation(`/application/v1/games/${gameId}/history`, accessToken, "POST", {
-          row: move.row, col: move.col, value: move.value,
-        }))
-      }
+      enqueueMutation(async () => {
+        for (const move of moveToRedo.moves) {
+          await sendGameMutation(`/application/v1/games/${gameId}/history`, accessToken, "POST", {
+            row: move.row, col: move.col, value: move.value,
+          })
+        }
+      })
     }
   }
 
@@ -475,11 +483,13 @@ export default function GamePage() {
       setMoves(prev => [...prev, { type: "batch", moves: batchMoves }])
 
       if (gameId) {
-        for (const move of batchMoves) {
-          enqueueMutation(() => sendGameMutation(`/application/v1/games/${gameId}/history`, accessToken, "POST", {
-            row: move.row, col: move.col, value: move.value,
-          }))
-        }
+        enqueueMutation(async () => {
+          for (const move of batchMoves) {
+            await sendGameMutation(`/application/v1/games/${gameId}/history`, accessToken, "POST", {
+              row: move.row, col: move.col, value: move.value,
+            })
+          }
+        })
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to solve puzzle")
