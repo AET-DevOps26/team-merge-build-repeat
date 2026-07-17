@@ -4,6 +4,7 @@ import com.sudokuai.merge_build_repeat.dto.HistoryRecord;
 import com.sudokuai.merge_build_repeat.model.GameHistory;
 import com.sudokuai.merge_build_repeat.repository.GameHistoryRepository;
 import com.sudokuai.merge_build_repeat.service.GameHistoryService;
+import com.sudokuai.merge_build_repeat.service.GamePropertiesService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +25,9 @@ class GameHistoryServiceTest {
 
     @Mock
     private GameHistoryRepository repository;
+
+    @Mock
+    private GamePropertiesService gamePropertiesService;
 
     @InjectMocks
     private GameHistoryService gameHistoryService;
@@ -72,6 +76,7 @@ class GameHistoryServiceTest {
             assertEquals(row, savedHistory.getRow());
             assertEquals(col, savedHistory.getCol());
             assertEquals(value, savedHistory.getValue());
+            verify(gamePropertiesService).updateGameProperties(gameId, row, col, value);
         }
     }
 
@@ -112,7 +117,7 @@ class GameHistoryServiceTest {
         @Test
         void shouldReturnEmptyListWhenNoHistoryExists() {
             UUID gameId = UUID.randomUUID();
-            when(repository.findByGameId(gameId)).thenReturn(Collections.emptyList());
+            when(repository.findByGameIdOrderByCreatedAtAsc(gameId)).thenReturn(Collections.emptyList());
 
             List<HistoryRecord> records = gameHistoryService.getHistoryRecords(gameId);
 

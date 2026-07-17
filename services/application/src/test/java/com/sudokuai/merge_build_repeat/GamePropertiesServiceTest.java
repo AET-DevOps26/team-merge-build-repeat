@@ -44,7 +44,7 @@ class GamePropertiesServiceTest {
         @Test
         void shouldReturnPropertiesWhenFound() {
             UUID gameId = UUID.randomUUID();
-            GameProperties properties = new GameProperties(gameId, UUID.randomUUID(), "state");
+            GameProperties properties = new GameProperties(gameId, UUID.randomUUID(), "state", UUID.randomUUID());
             when(repository.findById(gameId)).thenReturn(Optional.of(properties));
 
             GameProperties result = gamePropertiesService.getGamePropertiesByGameId(gameId);
@@ -71,7 +71,7 @@ class GamePropertiesServiceTest {
         void shouldReturnMappedListWhenPropertiesExist() {
             UUID gameId = UUID.randomUUID();
             String stateStr = "530070000...";
-            GameProperties properties = new GameProperties(gameId, UUID.randomUUID(), stateStr);
+            GameProperties properties = new GameProperties(gameId, UUID.randomUUID(), stateStr, UUID.randomUUID());
             List<List<Integer>> expectedGrid = List.of(List.of(5, 3, 0));
 
             when(repository.findById(gameId)).thenReturn(Optional.of(properties));
@@ -103,7 +103,7 @@ class GamePropertiesServiceTest {
             UUID templateId = UUID.randomUUID();
             String solutionStr = "534678912...";
 
-            GameProperties properties = new GameProperties(gameId, templateId, "current");
+            GameProperties properties = new GameProperties(gameId, templateId, "current", UUID.randomUUID());
             GameTemplate template = new GameTemplate();
             template.setSolutionData(solutionStr);
             List<List<Integer>> expectedGrid = List.of(List.of(5, 3, 4));
@@ -138,7 +138,7 @@ class GamePropertiesServiceTest {
             UUID templateId = UUID.randomUUID();
             String templateDataStr = "004070010...";
 
-            GameProperties properties = new GameProperties(gameId, templateId, "current");
+            GameProperties properties = new GameProperties(gameId, templateId, "current", UUID.randomUUID());
             GameTemplate template = new GameTemplate();
             template.setTemplateData(templateDataStr);
             List<List<Integer>> expectedGrid = List.of(List.of(0, 0, 4));
@@ -161,7 +161,7 @@ class GamePropertiesServiceTest {
             UUID gameId = UUID.randomUUID();
             // 81 characters representing an empty board
             String initialState = "0".repeat(81);
-            GameProperties properties = new GameProperties(gameId, UUID.randomUUID(), initialState);
+            GameProperties properties = new GameProperties(gameId, UUID.randomUUID(), initialState, UUID.randomUUID());
 
             when(repository.findById(gameId)).thenReturn(Optional.of(properties));
 
