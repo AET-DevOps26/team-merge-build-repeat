@@ -74,7 +74,9 @@ export function GameChat({ gameId, accessToken }: GameChatProps) {
     setLoadingHistory(true)
 
     fetchChatHistory(gameId, accessToken, controller.signal)
-      .then(setMessages)
+      .then(messages => {
+        if (!controller.signal.aborted) setMessages(messages)
+      })
       .catch(error => {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           setError(error instanceof Error ? error.message : "Failed to load chat history")
