@@ -256,7 +256,8 @@ export default function GamePage() {
       }
     } catch (e) {
       const status = (e as any)?.status
-      if (status === 403) {
+      if (status === 403 || status === 404) {
+        setActiveGameId(null)
         navigate("/", { replace: true })
         return
       }
