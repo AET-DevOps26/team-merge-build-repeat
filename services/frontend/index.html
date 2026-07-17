@@ -12,6 +12,11 @@
   </head>
   <body class="bg-background">
     <div id="root"></div>
+    <script>
+      const theme = localStorage.getItem('theme') || 'dark'
+      document.documentElement.setAttribute('data-theme', theme)
+      document.documentElement.className = theme
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

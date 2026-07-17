@@ -14,6 +14,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/application': {
+        target: isDocker ? 'http://application:8080' : 'http://localhost:8081',
+        rewrite: (path) => path.replace(/^\/application/, ''),
+      },
       '/game-engine': {
         target: isDocker ? 'http://game-engine:8080' : 'http://localhost:8082',
         rewrite: (path) => path.replace(/^\/game-engine/, ''),
