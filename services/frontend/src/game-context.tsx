@@ -12,7 +12,7 @@ interface GameContextValue {
 const GameContext = createContext<GameContextValue | null>(null)
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  const { session } = useAuth()
+  const { session, loading } = useAuth()
   const [activeGameId, setActiveGameIdState] = useState<string | null>(
     () => localStorage.getItem(STORAGE_KEY)
   )
@@ -26,11 +26,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [activeGameId])
 
   useEffect(() => {
-    if (!session) {
+    if (!loading && !session) {
       setActiveGameIdState(null)
       localStorage.removeItem(STORAGE_KEY)
     }
-  }, [session])
+  }, [loading, session])
 
   const value = useMemo<GameContextValue>(() => ({
     activeGameId,
