@@ -78,6 +78,7 @@ Required production environment variables:
 | `CHAT_DATABASE_SPRING_PROFILE` | `docker` |
 | `APPLICATION_CONTEXT_PATH` | `/application` |
 | `CHAT_CONTEXT_PATH` | `/chat` |
+| `CHAT_SERVICE_URL` | `http://chat:8080/chat` |
 | `GENAI_ROOT_PATH` | `/genai` |
 | `GAME_ENGINE_ROOT_PATH` | `/game-engine` |
 
