@@ -12,6 +12,7 @@ import com.sudokuai.merge_build_repeat.repository.PencilMarkHistoryRepository;
 import com.sudokuai.merge_build_repeat.repository.PencilMarksRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -102,6 +103,7 @@ public class GamePropertiesService {
         }
     }
 
+    @Transactional
     public void deleteGame(UUID gameId) {
         gameHistoryRepository.deleteByGameId(gameId);
         pencilMarkHistoryRepository.deleteByGameId(gameId);
@@ -135,6 +137,7 @@ public class GamePropertiesService {
         }).toList();
     }
 
+    @Transactional
     public void recalculateStateFromHistory(UUID gameId) {
         GameProperties properties = repository.findById(gameId).orElse(null);
         if (properties == null) return;

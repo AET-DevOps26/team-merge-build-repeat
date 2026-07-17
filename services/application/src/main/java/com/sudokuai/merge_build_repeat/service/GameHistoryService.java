@@ -47,6 +47,7 @@ public class GameHistoryService {
          .toList();
     }
 
+    @Transactional
     public void undoLastMove(UUID gameId) {
         List<GameHistory> history = repository.findByGameIdOrderByCreatedAtAsc(gameId);
         if (!history.isEmpty()) {
