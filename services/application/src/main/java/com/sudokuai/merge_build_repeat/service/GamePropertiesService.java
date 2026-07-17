@@ -111,7 +111,15 @@ public class GamePropertiesService {
 
     @Transactional
     public void deleteGame(UUID gameId) {
-        accountRepository.clearLatestGameId(gameId);
+        GameProperties deletedGame = repository.findById(gameId).orElse(null);
+        UUID replacementGameId = deletedGame == null || deletedGame.getUserId() == null
+                ? null
+                : repository.findByUserIdOrderByIdAsc(deletedGame.getUserId()).stream()
+                        .map(GameProperties::getId)
+                        .filter(id -> !id.equals(gameId))
+                        .findFirst()
+                        .orElse(null);
+        accountRepository.replaceLatestGameId(gameId, replacementGameId);
         gameHistoryRepository.deleteByGameId(gameId);
         pencilMarkHistoryRepository.deleteByGameId(gameId);
         pencilMarksRepository.deleteByGameId(gameId);

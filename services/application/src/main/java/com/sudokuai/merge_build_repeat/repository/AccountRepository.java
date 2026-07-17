@@ -15,7 +15,7 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     void upsert(@Param("userId") UUID userId, @Param("gameId") UUID gameId);
 
     @Modifying
-    @Query("UPDATE Account account SET account.gameId = NULL WHERE account.gameId = :gameId")
-    void clearLatestGameId(@Param("gameId") UUID gameId);
+    @Query("UPDATE Account account SET account.gameId = :replacementGameId WHERE account.gameId = :deletedGameId")
+    void replaceLatestGameId(@Param("deletedGameId") UUID deletedGameId, @Param("replacementGameId") UUID replacementGameId);
 
 }

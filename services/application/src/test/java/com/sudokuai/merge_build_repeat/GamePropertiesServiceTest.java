@@ -255,15 +255,34 @@ class GamePropertiesServiceTest {
     }
 
     @Test
-    void shouldClearLatestGameReferenceBeforeDeletingGame() {
+    void shouldReplaceLatestGameReferenceWithAnotherOwnedGameBeforeDeletingGame() {
         UUID gameId = UUID.randomUUID();
+        UUID replacementGameId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        GameProperties deletedGame = new GameProperties(gameId, UUID.randomUUID(), "state", userId);
+        GameProperties replacementGame = new GameProperties(replacementGameId, UUID.randomUUID(), "state", userId);
+        when(repository.findById(gameId)).thenReturn(Optional.of(deletedGame));
+        when(repository.findByUserIdOrderByIdAsc(userId)).thenReturn(List.of(deletedGame, replacementGame));
 
         gamePropertiesService.deleteGame(gameId);
 
-        verify(accountRepository).clearLatestGameId(gameId);
+        verify(accountRepository).replaceLatestGameId(gameId, replacementGameId);
         verify(gameHistoryRepository).deleteByGameId(gameId);
         verify(pencilMarkHistoryRepository).deleteByGameId(gameId);
         verify(pencilMarksRepository).deleteByGameId(gameId);
         verify(repository).deleteById(gameId);
+    }
+
+    @Test
+    void shouldClearLatestGameReferenceWhenDeletingUsersOnlyGame() {
+        UUID gameId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        GameProperties deletedGame = new GameProperties(gameId, UUID.randomUUID(), "state", userId);
+        when(repository.findById(gameId)).thenReturn(Optional.of(deletedGame));
+        when(repository.findByUserIdOrderByIdAsc(userId)).thenReturn(List.of(deletedGame));
+
+        gamePropertiesService.deleteGame(gameId);
+
+        verify(accountRepository).replaceLatestGameId(gameId, null);
     }
 }
