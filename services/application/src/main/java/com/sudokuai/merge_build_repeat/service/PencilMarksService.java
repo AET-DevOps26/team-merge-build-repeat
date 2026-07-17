@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,47 +19,51 @@ public class PencilMarksService {
     PencilMarksRepository pencilMarksRepository;
     PencilMarkHistoryRepository pencilMarkHistoryRepository;
 
-
+    /**
+     * Stores only candidates explicitly removed by the player. Candidates that
+     * remain possible are calculated from the current board when requested.
+     */
     @Transactional
     public boolean updatePencilMark(UUID gameId, int row, int col, int value) {
-        if (row < 0 || row > 8 || col < 0 || col > 8 || value < 1 || value > 9) {
+        if (!isValidPosition(row, col, value)) {
             return false;
         }
 
-        String markValue = String.valueOf(value);
-        PencilMarks marks = pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, col);
-        if (marks == null) {
-            marks = new PencilMarks();
-            marks.setGameId(gameId);
-            marks.setRow(row);
-            marks.setCol(col);
-            marks.setMarks(markValue);
-        } else {
-            String existingMarks = marks.getMarks();
-            if (!existingMarks.contains(markValue)) {
-                existingMarks += markValue;
-            } else {
-                return false;
-            }
-            marks.setMarks(existingMarks);
+        PencilMarks excludedMarks = pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, col);
+        if (excludedMarks == null || !excludedMarks.getMarks().contains(String.valueOf(value))) {
+            return false;
         }
-        pencilMarksRepository.save(marks);
+
+        String remainingExclusions = excludedMarks.getMarks().replace(String.valueOf(value), "");
+        if (remainingExclusions.isEmpty()) {
+            pencilMarksRepository.delete(excludedMarks);
+        } else {
+            excludedMarks.setMarks(remainingExclusions);
+            pencilMarksRepository.save(excludedMarks);
+        }
         return true;
     }
 
     @Transactional
-    public boolean deletePencilMark(UUID gameId, int row, int column, int value) {
-        if (row < 0 || row > 8 || column < 0 || column > 8 || value < 1 || value > 9) {
+    public boolean deletePencilMark(UUID gameId, int row, int col, int value) {
+        if (!isValidPosition(row, col, value)) {
             return false;
         }
 
-        PencilMarks marks = pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, column);
-        if (marks == null || !marks.getMarks().contains(String.valueOf(value))) {
+        String markValue = String.valueOf(value);
+        PencilMarks excludedMarks = pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, col);
+        if (excludedMarks == null) {
+            excludedMarks = new PencilMarks();
+            excludedMarks.setGameId(gameId);
+            excludedMarks.setRow(row);
+            excludedMarks.setCol(col);
+            excludedMarks.setMarks(markValue);
+        } else if (excludedMarks.getMarks().contains(markValue)) {
             return false;
+        } else {
+            excludedMarks.setMarks(excludedMarks.getMarks() + markValue);
         }
-
-        marks.setMarks(marks.getMarks().replace(String.valueOf(value), ""));
-        pencilMarksRepository.save(marks);
+        pencilMarksRepository.save(excludedMarks);
         return true;
     }
 
@@ -71,10 +76,6 @@ public class PencilMarksService {
         } else {
             return;
         }
-
-        // Default candidates are calculated in the frontend and therefore are
-        // not necessarily present in pencil_marks.  Their removal still has
-        // to be recorded so it survives a reload.
         pencilMarkHistoryRepository.save(new PencilMarkHistory(gameId, row, col, value, action, initial));
     }
 
@@ -82,10 +83,14 @@ public class PencilMarksService {
     public void undoLastPencilMarkHistory(UUID gameId) {
         List<PencilMarkHistory> history = pencilMarkHistoryRepository.findByGameIdOrderByCreatedAtAsc(gameId);
         PencilMarkHistory last = null;
-        for (PencilMarkHistory h : history) {
-            if (!h.isInitial()) last = h;
+        for (PencilMarkHistory entry : history) {
+            if (!entry.isInitial()) {
+                last = entry;
+            }
         }
-        if (last == null) return;
+        if (last == null) {
+            return;
+        }
         if ("ADD".equals(last.getAction())) {
             deletePencilMark(gameId, last.getRow(), last.getCol(), last.getValue());
         } else {
@@ -96,33 +101,80 @@ public class PencilMarksService {
 
     public List<PencilMarkHistoryEntry> getPencilMarkHistory(UUID gameId) {
         return pencilMarkHistoryRepository.findByGameIdOrderByCreatedAtAsc(gameId).stream()
-                .map(h -> new PencilMarkHistoryEntry(h.getRow(), h.getCol(), h.getValue(), h.getAction(), h.isInitial(), h.getCreatedAt()))
+                .map(entry -> new PencilMarkHistoryEntry(entry.getRow(), entry.getCol(), entry.getValue(), entry.getAction(), entry.isInitial(), entry.getCreatedAt()))
                 .toList();
     }
 
-    public List<List<List<Integer>>> getPencilMarks(UUID gameId) {
-        List<PencilMarks> marksList = pencilMarksRepository.findByGameId(gameId);
-        List<List<List<Integer>>> pencilMarks = new java.util.ArrayList<>(9);
-        for (int i = 0; i < 9; i++) {
-            List<List<Integer>> rowMarks = new java.util.ArrayList<>(9);
-            for (int j = 0; j < 9; j++) {
-                rowMarks.add(new java.util.ArrayList<>());
+    public List<List<List<Integer>>> getPencilMarks(UUID gameId, List<List<Integer>> board) {
+        List<List<List<Integer>>> candidates = calculateCandidates(board);
+        for (PencilMarks excludedMarks : pencilMarksRepository.findByGameId(gameId)) {
+            if (!gameId.equals(excludedMarks.getGameId())) {
+                continue;
             }
-            pencilMarks.add(rowMarks);
+            List<Integer> cellCandidates = candidates.get(excludedMarks.getRow()).get(excludedMarks.getCol());
+            for (char value : excludedMarks.getMarks().toCharArray()) {
+                cellCandidates.remove(Integer.valueOf(Character.getNumericValue(value)));
+            }
         }
+        return candidates;
+    }
 
-        for (PencilMarks marks : marksList) {
-            if (marks.getGameId().equals(gameId)) {
-                int row = marks.getRow();
-                int col = marks.getCol();
-                String markString = marks.getMarks();
-                List<Integer> markValues = new java.util.ArrayList<>();
-                for (char c : markString.toCharArray()) {
-                    markValues.add(Character.getNumericValue(c));
+    private List<List<List<Integer>>> calculateCandidates(List<List<Integer>> board) {
+        validateBoard(board);
+        List<List<List<Integer>>> candidates = new ArrayList<>(9);
+        for (int row = 0; row < 9; row++) {
+            List<List<Integer>> candidateRow = new ArrayList<>(9);
+            for (int col = 0; col < 9; col++) {
+                List<Integer> cellCandidates = new ArrayList<>();
+                if (board.get(row).get(col) == 0) {
+                    for (int value = 1; value <= 9; value++) {
+                        if (isCandidateAllowed(board, row, col, value)) {
+                            cellCandidates.add(value);
+                        }
+                    }
                 }
-                pencilMarks.get(row).set(col, markValues);
+                candidateRow.add(cellCandidates);
+            }
+            candidates.add(candidateRow);
+        }
+        return candidates;
+    }
+
+    private boolean isCandidateAllowed(List<List<Integer>> board, int row, int col, int value) {
+        for (int index = 0; index < 9; index++) {
+            if (board.get(row).get(index) == value || board.get(index).get(col) == value) {
+                return false;
             }
         }
-        return pencilMarks;
+        int boxRow = row / 3 * 3;
+        int boxCol = col / 3 * 3;
+        for (int currentRow = boxRow; currentRow < boxRow + 3; currentRow++) {
+            for (int currentCol = boxCol; currentCol < boxCol + 3; currentCol++) {
+                if (board.get(currentRow).get(currentCol) == value) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private void validateBoard(List<List<Integer>> board) {
+        if (board == null || board.size() != 9) {
+            throw new IllegalArgumentException("A Sudoku board must have 9 rows");
+        }
+        for (List<Integer> row : board) {
+            if (row == null || row.size() != 9) {
+                throw new IllegalArgumentException("A Sudoku board must have 9 columns per row");
+            }
+            for (Integer value : row) {
+                if (value == null || value < 0 || value > 9) {
+                    throw new IllegalArgumentException("Sudoku values must be between 0 and 9");
+                }
+            }
+        }
+    }
+
+    private boolean isValidPosition(int row, int col, int value) {
+        return row >= 0 && row < 9 && col >= 0 && col < 9 && value >= 1 && value <= 9;
     }
 }
