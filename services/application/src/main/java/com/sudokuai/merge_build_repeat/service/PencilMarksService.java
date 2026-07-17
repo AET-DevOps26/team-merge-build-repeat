@@ -47,23 +47,34 @@ public class PencilMarksService {
     }
 
     @Transactional
-    public void deletePencilMark(UUID gameId, int row, int column, int value) {
-        PencilMarks marks = pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, column);
-        if (marks != null) {
-            String existingMarks = marks.getMarks();
-            existingMarks = existingMarks.replace(String.valueOf(value), "");
-            marks.setMarks(existingMarks);
-            pencilMarksRepository.save(marks);
+    public boolean deletePencilMark(UUID gameId, int row, int column, int value) {
+        if (row < 0 || row > 8 || column < 0 || column > 8 || value < 1 || value > 9) {
+            return false;
         }
+
+        PencilMarks marks = pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, column);
+        if (marks == null || !marks.getMarks().contains(String.valueOf(value))) {
+            return false;
+        }
+
+        marks.setMarks(marks.getMarks().replace(String.valueOf(value), ""));
+        pencilMarksRepository.save(marks);
+        return true;
     }
 
     @Transactional
     public void saveToHistory(UUID gameId, int row, int col, int value, String action, boolean initial) {
-        pencilMarkHistoryRepository.save(new PencilMarkHistory(gameId, row, col, value, action, initial));
+        boolean changed;
         if ("ADD".equals(action)) {
-            updatePencilMark(gameId, row, col, value);
+            changed = updatePencilMark(gameId, row, col, value);
+        } else if ("REMOVE".equals(action)) {
+            changed = deletePencilMark(gameId, row, col, value);
         } else {
-            deletePencilMark(gameId, row, col, value);
+            return;
+        }
+
+        if (changed) {
+            pencilMarkHistoryRepository.save(new PencilMarkHistory(gameId, row, col, value, action, initial));
         }
     }
 
