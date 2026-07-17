@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Header, BottomNav } from "@/components/navigation"
 import { useAuth } from "@/src/auth/auth-context"
@@ -6,19 +6,17 @@ import { useAuth } from "@/src/auth/auth-context"
 type Difficulty = "easy" | "medium" | "hard"
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const DASH_POSITIONS = [8, 12, 16, 20]
+
+function formatUUID(chars: string[]): string {
+  const value = chars.join('')
+  return [value.slice(0, 8), value.slice(8, 12), value.slice(12, 16), value.slice(16, 20), value.slice(20, 32)]
+    .filter(Boolean)
+    .join('-')
+}
 
 function isValidUUID(chars: string[]): boolean {
   if (chars.some(c => c === '')) return false
-  const segments = [
-    chars.slice(0, 8).join(''),
-    chars.slice(8, 12).join(''),
-    chars.slice(12, 16).join(''),
-    chars.slice(16, 20).join(''),
-    chars.slice(20, 32).join(''),
-  ]
-  const uuid = segments.join('-')
-  return UUID_REGEX.test(uuid)
+  return UUID_REGEX.test(formatUUID(chars))
 }
 
 export default function HomePage() {
@@ -27,7 +25,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false)
   const [uuidChars, setUuidChars] = useState<string[]>(Array(32).fill(''))
   const [error, setError] = useState<string | null>(null)
-  const inputRefs = useRef<(HTMLInputElement | null)[]>(Array(32).fill(null))
 
   const handleNewGame = async (difficulty: Difficulty) => {
     setLoading(true)
@@ -50,13 +47,7 @@ export default function HomePage() {
   }
 
   const handleTemplateGame = async () => {
-    const segments = []
-    segments.push(uuidChars.slice(0, 8).join(''))
-    segments.push(uuidChars.slice(8, 12).join(''))
-    segments.push(uuidChars.slice(12, 16).join(''))
-    segments.push(uuidChars.slice(16, 20).join(''))
-    segments.push(uuidChars.slice(20, 32).join(''))
-    const templateId = segments.join('-')
+    const templateId = formatUUID(uuidChars)
 
     if (!isValidUUID(uuidChars)) {
       setError("Please enter a valid template ID")
@@ -81,53 +72,9 @@ export default function HomePage() {
     }
   }
 
-  const handleCharInput = (index: number, value: string) => {
-    const char = value.replace(/[^0-9a-f]/gi, '').slice(0, 1).toLowerCase()
-    const newChars = [...uuidChars]
-    newChars[index] = char
-
-    setUuidChars(newChars)
-
-    if (char && index < 31) {
-      inputRefs.current[index + 1]?.focus()
-    }
-  }
-
-  const handleCharKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace') {
-      if (uuidChars[index] === '' && index > 0) {
-        const newChars = [...uuidChars]
-        newChars[index - 1] = ''
-        setUuidChars(newChars)
-        inputRefs.current[index - 1]?.focus()
-      } else {
-        const newChars = [...uuidChars]
-        newChars[index] = ''
-        setUuidChars(newChars)
-      }
-    } else if (e.key === 'ArrowLeft' && index > 0) {
-      inputRefs.current[index - 1]?.focus()
-    } else if (e.key === 'ArrowRight' && index < 31) {
-      inputRefs.current[index + 1]?.focus()
-    }
-  }
-
-  const handleCharPaste = (index: number, e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault()
-    const pastedText = e.clipboardData.getData('text')
-    const cleaned = pastedText.replace(/[^0-9a-f]/gi, '').slice(0, 32 - index)
-
-    const newChars = [...uuidChars]
-    for (let i = 0; i < cleaned.length && index + i < 32; i++) {
-      newChars[index + i] = cleaned[i]
-    }
-
-    setUuidChars(newChars)
-
-    if (cleaned.length > 0) {
-      const nextIndex = Math.min(index + cleaned.length, 31)
-      inputRefs.current[nextIndex]?.focus()
-    }
+  const handleTemplateIdChange = (value: string) => {
+    const chars = value.replace(/[^0-9a-f]/gi, '').slice(0, 32).toLowerCase().split('')
+    setUuidChars([...chars, ...Array(32 - chars.length).fill('')])
   }
 
   const handleContinue = async () => {
@@ -212,36 +159,22 @@ export default function HomePage() {
 
               {/* With ID Section */}
               <div className="flex flex-col">
-                <label className="text-foreground font-heading font-bold text-sm mb-3 uppercase tracking-tight">or load by template id</label>
+                <label htmlFor="template-id" className="text-foreground font-heading font-bold text-sm mb-3 uppercase tracking-tight">or load by template id</label>
                 <div className="mb-3">
-                  <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(36, 1fr)' }}>
-                    {Array.from({ length: 36 }).map((_, pos) => {
-                      const isDash = DASH_POSITIONS.includes(pos)
-                      const charIdx = pos - DASH_POSITIONS.filter(d => d < pos).length
-
-                      return (
-                        <div key={pos} className="flex items-center justify-center">
-                          {isDash ? (
-                            <span className="text-foreground font-bold text-lg leading-none flex items-center justify-center aspect-square">-</span>
-                          ) : (
-                            <input
-                              ref={(el) => {
-                                inputRefs.current[charIdx] = el
-                              }}
-                              type="text"
-                              value={uuidChars[charIdx]}
-                              onChange={(e) => handleCharInput(charIdx, e.target.value)}
-                              onKeyDown={(e) => handleCharKeyDown(charIdx, e)}
-                              onPaste={(e) => handleCharPaste(charIdx, e)}
-                              disabled={loading}
-                              maxLength={1}
-                              className="w-full aspect-square bg-white/10 border-2 border-accent/50 text-foreground rounded text-center focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 disabled:opacity-50 transition-all font-mono font-bold uppercase"
-                            />
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
+                  <input
+                    id="template-id"
+                    type="text"
+                    value={formatUUID(uuidChars)}
+                    onChange={(e) => handleTemplateIdChange(e.target.value)}
+                    disabled={loading}
+                    inputMode="text"
+                    autoComplete="off"
+                    spellCheck={false}
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    aria-describedby="template-id-help"
+                    className="w-full bg-white/10 border-2 border-accent/50 text-foreground rounded px-3 py-3 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/50 disabled:opacity-50 transition-all font-mono font-bold"
+                  />
+                  <p id="template-id-help" className="mt-2 text-xs text-foreground/70">Paste or enter a template UUID.</p>
                 </div>
                 <button
                   onClick={handleTemplateGame}
