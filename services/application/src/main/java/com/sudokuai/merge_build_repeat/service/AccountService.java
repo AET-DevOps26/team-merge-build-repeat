@@ -26,6 +26,10 @@ public class AccountService {
         repository.save(new Account(userId, gameId));
     }
 
+    public void upsertAccount(UUID userId, UUID gameId) {
+        repository.upsert(userId, gameId);
+    }
+
 
     public UUID getLatestGameId(UUID userId) {
         Account account = repository.findById(userId)

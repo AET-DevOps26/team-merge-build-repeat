@@ -14,6 +14,7 @@ import java.util.UUID;
 public class GameHistoryService {
 
     GameHistoryRepository repository;
+    GamePropertiesService gamePropertiesService;
 
     public void saveGameHistory(UUID gameId, Integer row, Integer col, Integer value) {
         repository.save(new GameHistory(gameId, row, col, value));
@@ -32,14 +33,22 @@ public class GameHistoryService {
     }
 
     public List<HistoryRecord> getHistoryRecords(UUID gameId) {
-         List<GameHistory> history = repository.findByGameId(gameId);
+         List<GameHistory> history = repository.findByGameIdOrderByCreatedAtAsc(gameId);
 
 //         if (history == null || history.isEmpty()) {
 //         throw new RuntimeException("No history found for gameId: " + gameId);
 //         }
 
          return history.stream()
-         .map(h -> new HistoryRecord(h.getId(), h.getRow(), h.getCol(), h.getValue()))
+         .map(h -> new HistoryRecord(h.getId(), h.getRow(), h.getCol(), h.getValue(), h.getCreatedAt()))
          .toList();
+    }
+
+    public void undoLastMove(UUID gameId) {
+        List<GameHistory> history = repository.findByGameIdOrderByCreatedAtAsc(gameId);
+        if (!history.isEmpty()) {
+            repository.delete(history.get(history.size() - 1));
+            gamePropertiesService.recalculateStateFromHistory(gameId);
+        }
     }
 }

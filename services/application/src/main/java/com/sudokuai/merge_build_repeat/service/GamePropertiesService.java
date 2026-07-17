@@ -1,10 +1,15 @@
 package com.sudokuai.merge_build_repeat.service;
 
+import com.sudokuai.merge_build_repeat.dto.UserGameSummary;
 import com.sudokuai.merge_build_repeat.exception.NoTemplateException;
+import com.sudokuai.merge_build_repeat.model.GameHistory;
 import com.sudokuai.merge_build_repeat.model.GameProperties;
 import com.sudokuai.merge_build_repeat.model.GameTemplate;
+import com.sudokuai.merge_build_repeat.repository.GameHistoryRepository;
 import com.sudokuai.merge_build_repeat.repository.GamePropertiesRepository;
 import com.sudokuai.merge_build_repeat.repository.GameTemplateRepository;
+import com.sudokuai.merge_build_repeat.repository.PencilMarkHistoryRepository;
+import com.sudokuai.merge_build_repeat.repository.PencilMarksRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,10 +22,13 @@ public class GamePropertiesService {
 
     GamePropertiesRepository repository;
     GameTemplateRepository templateRepository;
+    GameHistoryRepository gameHistoryRepository;
+    PencilMarkHistoryRepository pencilMarkHistoryRepository;
+    PencilMarksRepository pencilMarksRepository;
     MapperService mapperService;
 
     public UUID saveNewGameProperties(UUID gameId, UUID templateId, String currentState) {
-        GameProperties properties = new GameProperties(gameId, templateId, currentState);
+        GameProperties properties = new GameProperties(gameId, templateId, currentState, null);
         repository.save(properties);
         return properties.getId();
     }
@@ -98,5 +106,57 @@ public class GamePropertiesService {
             properties.setCurrentState(result);
             repository.save(properties);
         }
+    }
+
+    public void deleteGame(UUID gameId) {
+        gameHistoryRepository.deleteByGameId(gameId);
+        pencilMarkHistoryRepository.deleteByGameId(gameId);
+        pencilMarksRepository.deleteByGameId(gameId);
+        repository.deleteById(gameId);
+    }
+
+    public List<UserGameSummary> getUserGames(UUID userId) {
+        List<GameProperties> games = repository.findByUserIdOrderByIdAsc(userId);
+        return games.stream().map(game -> {
+            GameTemplate template = templateRepository.findById(game.getTemplateId()).orElse(null);
+            String difficulty = template != null ? template.getDifficulty() : "unknown";
+            String templateData = template != null ? template.getTemplateData() : "";
+
+            // Count empty cells in template
+            int totalCells = 0;
+            for (int i = 0; i < templateData.length(); i++) {
+                if (templateData.charAt(i) == '0') totalCells++;
+            }
+
+            // Compute filled cells from game_history: latest value per (row,col)
+            int[] latestValues = new int[81]; // 0 = empty
+            gameHistoryRepository.findByGameIdOrderByCreatedAtAsc(game.getId())
+                .forEach(h -> latestValues[h.getRow() * 9 + h.getCol()] = h.getValue());
+            int filledCells = 0;
+            for (int i = 0; i < templateData.length(); i++) {
+                if (templateData.charAt(i) == '0' && latestValues[i] != 0) filledCells++;
+            }
+
+            return new UserGameSummary(game.getId(), game.getTemplateId(), difficulty, filledCells, totalCells);
+        }).toList();
+    }
+
+    public void recalculateStateFromHistory(UUID gameId) {
+        GameProperties properties = repository.findById(gameId).orElse(null);
+        if (properties == null) return;
+
+        GameTemplate template = templateRepository.findById(properties.getTemplateId())
+                .orElseThrow(() -> new NoTemplateException("Template with ID " + properties.getTemplateId() + " not found"));
+
+        String templateData = template.getTemplateData();
+        StringBuilder currentState = new StringBuilder(templateData);
+
+        List<GameHistory> history = gameHistoryRepository.findByGameIdOrderByCreatedAtAsc(gameId);
+        for (GameHistory h : history) {
+            currentState.setCharAt(h.getRow() * 9 + h.getCol(), h.getValue().toString().charAt(0));
+        }
+
+        properties.setCurrentState(currentState.toString());
+        repository.save(properties);
     }
 }

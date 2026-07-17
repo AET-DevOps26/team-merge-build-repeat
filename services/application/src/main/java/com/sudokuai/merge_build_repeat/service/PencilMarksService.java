@@ -1,19 +1,22 @@
 package com.sudokuai.merge_build_repeat.service;
 
+import com.sudokuai.merge_build_repeat.dto.PencilMarkHistoryEntry;
+import com.sudokuai.merge_build_repeat.model.PencilMarkHistory;
 import com.sudokuai.merge_build_repeat.model.PencilMarks;
+import com.sudokuai.merge_build_repeat.repository.PencilMarkHistoryRepository;
 import com.sudokuai.merge_build_repeat.repository.PencilMarksRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @AllArgsConstructor
 public class PencilMarksService {
     PencilMarksRepository pencilMarksRepository;
+    PencilMarkHistoryRepository pencilMarkHistoryRepository;
 
 
     @Transactional
@@ -52,6 +55,38 @@ public class PencilMarksService {
             marks.setMarks(existingMarks);
             pencilMarksRepository.save(marks);
         }
+    }
+
+    @Transactional
+    public void saveToHistory(UUID gameId, int row, int col, int value, String action, boolean initial) {
+        pencilMarkHistoryRepository.save(new PencilMarkHistory(gameId, row, col, value, action, initial));
+        if ("ADD".equals(action)) {
+            updatePencilMark(gameId, row, col, value);
+        } else {
+            deletePencilMark(gameId, row, col, value);
+        }
+    }
+
+    @Transactional
+    public void undoLastPencilMarkHistory(UUID gameId) {
+        List<PencilMarkHistory> history = pencilMarkHistoryRepository.findByGameIdOrderByCreatedAtAsc(gameId);
+        PencilMarkHistory last = null;
+        for (PencilMarkHistory h : history) {
+            if (!h.isInitial()) last = h;
+        }
+        if (last == null) return;
+        if ("ADD".equals(last.getAction())) {
+            deletePencilMark(gameId, last.getRow(), last.getCol(), last.getValue());
+        } else {
+            updatePencilMark(gameId, last.getRow(), last.getCol(), last.getValue());
+        }
+        pencilMarkHistoryRepository.delete(last);
+    }
+
+    public List<PencilMarkHistoryEntry> getPencilMarkHistory(UUID gameId) {
+        return pencilMarkHistoryRepository.findByGameIdOrderByCreatedAtAsc(gameId).stream()
+                .map(h -> new PencilMarkHistoryEntry(h.getRow(), h.getCol(), h.getValue(), h.getAction(), h.isInitial(), h.getCreatedAt()))
+                .toList();
     }
 
     public List<List<List<Integer>>> getPencilMarks(UUID gameId) {
