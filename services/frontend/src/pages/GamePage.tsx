@@ -104,12 +104,23 @@ async function fetchPencilMarkHistory(gameId: string, accessToken: string): Prom
   return res.json()
 }
 
-async function savePencilMarkHistory(gameId: string, accessToken: string, row: number, col: number, value: number, action: "ADD" | "REMOVE", initial: boolean): Promise<void> {
-  await fetch(`/application/v1/games/${gameId}/pencil-mark-history`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-    body: JSON.stringify({ row, column: col, value, action, initial })
+async function sendGameMutation(path: string, accessToken: string | null, method: "POST" | "DELETE", body?: object): Promise<void> {
+  const res = await fetch(path, {
+    method,
+    headers: {
+      ...(body ? { "Content-Type": "application/json" } : {}),
+      "Authorization": `Bearer ${accessToken}`,
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
   })
+  if (!res.ok) throw new Error(`Game update failed: ${res.status}`)
+  if (method === "POST" && path.endsWith("/history") && await res.json() !== true) {
+    throw new Error("Game update was rejected")
+  }
+}
+
+async function savePencilMarkHistory(gameId: string, accessToken: string | null, row: number, col: number, value: number, action: "ADD" | "REMOVE", initial: boolean): Promise<void> {
+  await sendGameMutation(`/application/v1/games/${gameId}/pencil-mark-history`, accessToken, "POST", { row, column: col, value, action, initial })
 }
 
 export default function GamePage() {
@@ -133,6 +144,7 @@ export default function GamePage() {
   const [correctCells, setCorrectCells] = useState<Set<string>>(new Set())
   const [copyFeedback, setCopyFeedback] = useState(false)
   const prevFilledRef = useRef(false)
+  const mutationQueueRef = useRef<Promise<void>>(Promise.resolve())
 
   const givenCells = useMemo(
     () => puzzle.map(row => row.map(cell => Boolean(cell))),
@@ -258,6 +270,16 @@ export default function GamePage() {
     loadNewGame()
   }, [loadNewGame])
 
+  const enqueueMutation = useCallback((mutation: () => Promise<void>) => {
+    mutationQueueRef.current = mutationQueueRef.current
+      .then(mutation)
+      .catch(async (err) => {
+        const message = err instanceof Error ? err.message : "Failed to update game"
+        await loadNewGame()
+        setError(message)
+      })
+  }, [loadNewGame])
+
   const handleCellClick = (row: number, col: number) => {
     if (!givenCells[row][col]) setSelectedCell({ row, col })
   }
@@ -282,8 +304,7 @@ export default function GamePage() {
       const newMove: Move = { type: "pencil", row: selectedCell.row, col: selectedCell.col, value: num, action }
       setMoves(prev => [...prev, newMove])
       if (gameId) {
-        savePencilMarkHistory(gameId, accessToken, selectedCell.row, selectedCell.col, num, action, false)
-          .catch(err => console.error("Failed to save pencil mark:", err))
+        enqueueMutation(() => savePencilMarkHistory(gameId, accessToken, selectedCell.row, selectedCell.col, num, action, false))
       }
       return
     }
@@ -292,11 +313,9 @@ export default function GamePage() {
     setMoves(prev => [...prev, newMove])
 
     if (!pencilMode && gameId) {
-      fetch(`/application/v1/games/${gameId}/history`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-        body: JSON.stringify({ row: selectedCell.row, col: selectedCell.col, value: num })
-      }).catch(err => console.error("Failed to save move:", err))
+      enqueueMutation(() => sendGameMutation(`/application/v1/games/${gameId}/history`, accessToken, "POST", {
+        row: selectedCell.row, col: selectedCell.col, value: num,
+      }))
     }
   }
 
@@ -317,11 +336,9 @@ export default function GamePage() {
     setMoves(prev => [...prev, { type: "number", row: selectedCell.row, col: selectedCell.col, value: 0 }])
 
     if (gameId) {
-      fetch(`/application/v1/games/${gameId}/history`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-        body: JSON.stringify({ row: selectedCell.row, col: selectedCell.col, value: 0 })
-      }).catch(err => console.error("Failed to save delete:", err))
+      enqueueMutation(() => sendGameMutation(`/application/v1/games/${gameId}/history`, accessToken, "POST", {
+        row: selectedCell.row, col: selectedCell.col, value: 0,
+      }))
     }
   }
 
@@ -359,15 +376,9 @@ export default function GamePage() {
 
     if (gameId) {
       if (lastMove.type === "pencil") {
-        fetch(`/application/v1/games/${gameId}/pencil-mark-history`, {
-          method: "DELETE",
-          headers: { "Authorization": `Bearer ${accessToken}` },
-        }).catch(err => console.error("Failed to undo pencil mark:", err))
+        enqueueMutation(() => sendGameMutation(`/application/v1/games/${gameId}/pencil-mark-history`, accessToken, "DELETE"))
       } else if (lastMove.type === "number" || lastMove.type === "batch") {
-        fetch(`/application/v1/games/${gameId}/history`, {
-          method: "DELETE",
-          headers: { "Authorization": `Bearer ${accessToken}` },
-        }).catch(err => console.error("Failed to undo move:", err))
+        enqueueMutation(() => sendGameMutation(`/application/v1/games/${gameId}/history`, accessToken, "DELETE"))
       }
     }
   }
@@ -382,21 +393,16 @@ export default function GamePage() {
     if (!gameId) return
 
     if (moveToRedo.type === "pencil") {
-      savePencilMarkHistory(gameId, accessToken, moveToRedo.row, moveToRedo.col, moveToRedo.value, moveToRedo.action, false)
-        .catch(err => console.error("Failed to redo pencil mark:", err))
+      enqueueMutation(() => savePencilMarkHistory(gameId, accessToken, moveToRedo.row, moveToRedo.col, moveToRedo.value, moveToRedo.action, false))
     } else if (moveToRedo.type === "number") {
-      fetch(`/application/v1/games/${gameId}/history`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-        body: JSON.stringify({ row: moveToRedo.row, col: moveToRedo.col, value: moveToRedo.value })
-      }).catch(err => console.error("Failed to redo move:", err))
+      enqueueMutation(() => sendGameMutation(`/application/v1/games/${gameId}/history`, accessToken, "POST", {
+        row: moveToRedo.row, col: moveToRedo.col, value: moveToRedo.value,
+      }))
     } else if (moveToRedo.type === "batch") {
       for (const move of moveToRedo.moves) {
-        fetch(`/application/v1/games/${gameId}/history`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-          body: JSON.stringify({ row: move.row, col: move.col, value: move.value })
-        }).catch(err => console.error("Failed to redo batch move:", err))
+        enqueueMutation(() => sendGameMutation(`/application/v1/games/${gameId}/history`, accessToken, "POST", {
+          row: move.row, col: move.col, value: move.value,
+        }))
       }
     }
   }
@@ -469,11 +475,9 @@ export default function GamePage() {
 
       if (gameId) {
         for (const move of batchMoves) {
-          fetch(`/application/v1/games/${gameId}/history`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-            body: JSON.stringify({ row: move.row, col: move.col, value: move.value })
-          }).catch(err => console.error("Failed to save solve move:", err))
+          enqueueMutation(() => sendGameMutation(`/application/v1/games/${gameId}/history`, accessToken, "POST", {
+            row: move.row, col: move.col, value: move.value,
+          }))
         }
       }
     } catch (e) {
