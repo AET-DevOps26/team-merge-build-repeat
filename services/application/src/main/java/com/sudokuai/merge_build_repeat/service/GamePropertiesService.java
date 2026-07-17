@@ -14,8 +14,12 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -113,8 +117,15 @@ public class GamePropertiesService {
 
     public List<UserGameSummary> getUserGames(UUID userId) {
         List<GameProperties> games = repository.findByUserIdOrderByIdAsc(userId);
+        List<UUID> templateIds = games.stream().map(GameProperties::getTemplateId).distinct().toList();
+        List<UUID> gameIds = games.stream().map(GameProperties::getId).toList();
+        Map<UUID, GameTemplate> templatesById = templateRepository.findAllById(templateIds).stream()
+                .collect(Collectors.toMap(GameTemplate::getId, Function.identity()));
+        Map<UUID, List<GameHistory>> historiesByGameId = gameHistoryRepository.findByGameIdIn(gameIds).stream()
+                .collect(Collectors.groupingBy(GameHistory::getGameId));
+
         return games.stream().map(game -> {
-            GameTemplate template = templateRepository.findById(game.getTemplateId()).orElse(null);
+            GameTemplate template = templatesById.get(game.getTemplateId());
             String difficulty = template != null ? template.getDifficulty() : "unknown";
             String templateData = template != null ? template.getTemplateData() : "";
 
@@ -126,7 +137,8 @@ public class GamePropertiesService {
 
             // Compute filled cells from game_history: latest value per (row,col)
             int[] latestValues = new int[81]; // 0 = empty
-            gameHistoryRepository.findByGameIdOrderByCreatedAtAsc(game.getId())
+            historiesByGameId.getOrDefault(game.getId(), List.of()).stream()
+                .sorted(Comparator.comparing(GameHistory::getCreatedAt, Comparator.nullsFirst(Comparator.naturalOrder())))
                 .forEach(h -> latestValues[h.getRow() * 9 + h.getCol()] = h.getValue());
             int filledCells = 0;
             for (int i = 0; i < templateData.length(); i++) {
