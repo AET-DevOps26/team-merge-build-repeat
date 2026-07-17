@@ -8,6 +8,7 @@ services:
       - ./services/caddy/Caddyfile.local:/etc/caddy/Caddyfile:ro
 
   frontend:
+    pull_policy: build
     build:
       context: ./services/frontend
       args:
