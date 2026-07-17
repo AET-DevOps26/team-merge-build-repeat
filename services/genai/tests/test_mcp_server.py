@@ -43,7 +43,7 @@ def test_validate_board_against_solution_returns_json_and_does_not_mutate_input(
 
     assert result == {
         "board": [[0, 0, 0, 0, 0, 0, 0, 0, 0], *empty_board()[1:]],
-        "deleted_cells": [[0, 0, 7]],
+        "deleted_cells": [[1, 1, 7]],
     }
     assert board[0][0] == 7
 
@@ -59,7 +59,7 @@ def test_validate_candidates_against_board_returns_sorted_json_candidates() -> N
     result = validate_candidates_against_board(board, solution, candidate_board)
 
     assert result["candidate_board"][0][1] == [1, 6]
-    assert result["deleted_candidates"] == [[0, 1, 5]]
+    assert result["deleted_candidates"] == [[1, 2, 5]]
     assert result["missing_candidates"] == []
     assert candidate_board[0][1] == [6, 5, 1]
 
@@ -71,7 +71,7 @@ def test_find_single_candidates_returns_json_placements() -> None:
 
     result = find_single_candidates(empty_board(), empty_board(), candidate_board)
 
-    assert result == {"placements": [[0, 0, 5], [4, 8, 9]]}
+    assert result == {"placements": [[1, 1, 5], [5, 9, 9]]}
 
 
 def test_find_candidate_lines_returns_json_removals_and_reasons() -> None:
@@ -83,8 +83,8 @@ def test_find_candidate_lines_returns_json_removals_and_reasons() -> None:
     result = find_candidate_lines(empty_board(), empty_board(), candidate_board)
 
     assert result == {
-        "removals": [[0, 4, 4]],
-        "reasons": [[[0, 0], [0, 2]]],
+        "removals": [[1, 5, 4]],
+        "reasons": [[[1, 1], [1, 3]]],
     }
 
 
@@ -100,7 +100,7 @@ def test_find_next_step_serializes_strategy_result() -> None:
 
     assert result == {
         "strategy": "single_candidate",
-        "result": {"placements": [[2, 3, 8]]},
+        "result": {"placements": [[3, 4, 8]]},
     }
 
 
@@ -185,7 +185,7 @@ def test_find_tools_return_candidate_validation_result_before_strategy(
             [[], [6], [], [], [], [], [], [], []],
             *empty_candidate_board()[1:],
         ],
-        "deleted_candidates": [[0, 1, 5]],
+        "deleted_candidates": [[1, 2, 5]],
     }
     assert candidate_board[0][1] == [5, 6]
 
@@ -205,7 +205,7 @@ def test_find_next_step_returns_candidate_validation_result_before_strategy() ->
             [[], [6], [], [], [], [], [], [], []],
             *empty_candidate_board()[1:],
         ],
-        "deleted_candidates": [[0, 1, 5]],
+        "deleted_candidates": [[1, 2, 5]],
     }
 
 
@@ -243,7 +243,7 @@ def test_find_tools_return_missing_solution_candidates_before_strategy(
             [[], [1, 2], [], [], [], [], [], [], []],
             *empty_candidate_board()[1:],
         ],
-        "missing_candidates": [[0, 1, 5]],
+        "missing_candidates": [[1, 2, 5]],
     }
 
 
@@ -279,5 +279,5 @@ def test_find_tools_return_board_validation_result_before_candidates(
 
     assert result == {
         "board": empty_board(),
-        "deleted_cells": [[0, 0, 5]],
+        "deleted_cells": [[1, 1, 5]],
     }

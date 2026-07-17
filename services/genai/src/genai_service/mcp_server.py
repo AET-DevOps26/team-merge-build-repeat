@@ -89,6 +89,23 @@ def _jsonify(value: Any) -> Any:
     return value
 
 
+def _jsonify_cell_changes(changes: list[tuple[int, int, int]]) -> list[list[int]]:
+    """Serialize cell changes with 1-based row and column coordinates."""
+
+    return [[row + 1, col + 1, value] for row, col, value in changes]
+
+
+def _jsonify_positions(
+    reasons: list[tuple[tuple[int, int], ...]],
+) -> list[list[list[int]]]:
+    """Serialize cell positions with 1-based row and column coordinates."""
+
+    return [
+        [[row + 1, col + 1] for row, col in reason]
+        for reason in reasons
+    ]
+
+
 def _run_with_input_errors(callback: Callable[[], JsonObject]) -> JsonObject:
     try:
         return callback()
@@ -113,7 +130,7 @@ def _run_single_strategy(
 
         assert candidates is not None
         placements = finder(candidates)
-        return {"placements": _jsonify(placements)}
+        return {"placements": _jsonify_cell_changes(placements)}
 
     return _run_with_input_errors(run)
 
@@ -136,8 +153,8 @@ def _run_removal_strategy(
         assert candidates is not None
         removals, reasons = finder(candidates)
         return {
-            "removals": _jsonify(removals),
-            "reasons": _jsonify(reasons),
+            "removals": _jsonify_cell_changes(removals),
+            "reasons": _jsonify_positions(reasons),
         }
 
     return _run_with_input_errors(run)
@@ -156,7 +173,7 @@ def _validate_finder_input(
     if deleted_cells:
         return None, {
             "board": validated_board,
-            "deleted_cells": _jsonify(deleted_cells),
+            "deleted_cells": _jsonify_cell_changes(deleted_cells),
         }
 
     (
@@ -175,9 +192,9 @@ def _validate_finder_input(
         "candidate_board": _candidate_board_to_json(validated_candidates),
     }
     if deleted_candidates:
-        validation_result["deleted_candidates"] = _jsonify(deleted_candidates)
+        validation_result["deleted_candidates"] = _jsonify_cell_changes(deleted_candidates)
     if missing_candidates:
-        validation_result["missing_candidates"] = _jsonify(missing_candidates)
+        validation_result["missing_candidates"] = _jsonify_cell_changes(missing_candidates)
     return validated_candidates, validation_result
 
 
@@ -185,11 +202,11 @@ def _serialize_strategy_result(result: Any) -> JsonObject:
     if isinstance(result, tuple):
         removals, reasons = result
         return {
-            "removals": _jsonify(removals),
-            "reasons": _jsonify(reasons),
+            "removals": _jsonify_cell_changes(removals),
+            "reasons": _jsonify_positions(reasons),
         }
 
-    return {"placements": _jsonify(result)}
+    return {"placements": _jsonify_cell_changes(result)}
 
 
 @mcp.tool()
@@ -197,7 +214,7 @@ def validate_board_against_solution(
     board: JsonBoard,
     solution: JsonBoard,
 ) -> JsonObject:
-    """Remove board values that do not match the solved Sudoku board."""
+    """Remove invalid values; reported row and column coordinates are 1-based."""
 
     def run() -> JsonObject:
         board_copy = _copy_board(board)
@@ -208,7 +225,7 @@ def validate_board_against_solution(
         )
         return {
             "board": validated_board,
-            "deleted_cells": _jsonify(deleted_cells),
+            "deleted_cells": _jsonify_cell_changes(deleted_cells),
         }
 
     return _run_with_input_errors(run)
@@ -220,7 +237,7 @@ def validate_candidates_against_board(
     solution: JsonBoard,
     candidate_board: JsonCandidateBoard,
 ) -> JsonObject:
-    """Remove invalid candidates and report candidates required by the solution."""
+    """Validate candidates; reported row and column coordinates are 1-based."""
 
     def run() -> JsonObject:
         board_copy = _copy_board(board)
@@ -236,8 +253,8 @@ def validate_candidates_against_board(
         )
         return {
             "candidate_board": _candidate_board_to_json(validated_candidates),
-            "deleted_candidates": _jsonify(deleted_candidates),
-            "missing_candidates": _jsonify(missing_candidates),
+            "deleted_candidates": _jsonify_cell_changes(deleted_candidates),
+            "missing_candidates": _jsonify_cell_changes(missing_candidates),
         }
 
     return _run_with_input_errors(run)
@@ -249,7 +266,7 @@ def find_next_step(
     solution: JsonBoard,
     candidate_board: JsonCandidateBoard,
 ) -> JsonObject | None:
-    """Return the first applicable Sudoku strategy result from easy to hard."""
+    """Return the next strategy; all reported row and column coordinates are 1-based."""
 
     def run() -> JsonObject | None:
         candidates, validation_result = _validate_finder_input(
