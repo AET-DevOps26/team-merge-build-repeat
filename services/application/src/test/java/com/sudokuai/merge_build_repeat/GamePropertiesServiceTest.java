@@ -2,8 +2,12 @@ package com.sudokuai.merge_build_repeat;
 
 import com.sudokuai.merge_build_repeat.model.GameProperties;
 import com.sudokuai.merge_build_repeat.model.GameTemplate;
+import com.sudokuai.merge_build_repeat.repository.AccountRepository;
+import com.sudokuai.merge_build_repeat.repository.GameHistoryRepository;
 import com.sudokuai.merge_build_repeat.repository.GamePropertiesRepository;
 import com.sudokuai.merge_build_repeat.repository.GameTemplateRepository;
+import com.sudokuai.merge_build_repeat.repository.PencilMarkHistoryRepository;
+import com.sudokuai.merge_build_repeat.repository.PencilMarksRepository;
 import com.sudokuai.merge_build_repeat.service.GamePropertiesService;
 import com.sudokuai.merge_build_repeat.service.MapperService;
 import org.junit.jupiter.api.Nested;
@@ -30,7 +34,19 @@ class GamePropertiesServiceTest {
     private GamePropertiesRepository repository;
 
     @Mock
+    private AccountRepository accountRepository;
+
+    @Mock
     private GameTemplateRepository templateRepository;
+
+    @Mock
+    private GameHistoryRepository gameHistoryRepository;
+
+    @Mock
+    private PencilMarkHistoryRepository pencilMarkHistoryRepository;
+
+    @Mock
+    private PencilMarksRepository pencilMarksRepository;
 
     @Mock
     private MapperService mapperService;
@@ -236,5 +252,18 @@ class GamePropertiesServiceTest {
 
             verify(repository, never()).save(any(GameProperties.class));
         }
+    }
+
+    @Test
+    void shouldClearLatestGameReferenceBeforeDeletingGame() {
+        UUID gameId = UUID.randomUUID();
+
+        gamePropertiesService.deleteGame(gameId);
+
+        verify(accountRepository).clearLatestGameId(gameId);
+        verify(gameHistoryRepository).deleteByGameId(gameId);
+        verify(pencilMarkHistoryRepository).deleteByGameId(gameId);
+        verify(pencilMarksRepository).deleteByGameId(gameId);
+        verify(repository).deleteById(gameId);
     }
 }

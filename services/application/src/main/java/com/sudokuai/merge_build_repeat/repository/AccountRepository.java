@@ -14,4 +14,8 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     @Query(value = "INSERT INTO account (user_id, game_id) VALUES (:userId, :gameId) ON CONFLICT (user_id) DO UPDATE SET game_id = :gameId", nativeQuery = true)
     void upsert(@Param("userId") UUID userId, @Param("gameId") UUID gameId);
 
+    @Modifying
+    @Query("UPDATE Account account SET account.gameId = NULL WHERE account.gameId = :gameId")
+    void clearLatestGameId(@Param("gameId") UUID gameId);
+
 }

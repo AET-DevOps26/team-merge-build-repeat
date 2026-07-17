@@ -5,6 +5,7 @@ import com.sudokuai.merge_build_repeat.exception.NoTemplateException;
 import com.sudokuai.merge_build_repeat.model.GameHistory;
 import com.sudokuai.merge_build_repeat.model.GameProperties;
 import com.sudokuai.merge_build_repeat.model.GameTemplate;
+import com.sudokuai.merge_build_repeat.repository.AccountRepository;
 import com.sudokuai.merge_build_repeat.repository.GameHistoryRepository;
 import com.sudokuai.merge_build_repeat.repository.GamePropertiesRepository;
 import com.sudokuai.merge_build_repeat.repository.GameTemplateRepository;
@@ -30,6 +31,7 @@ public class GamePropertiesService {
     GameHistoryRepository gameHistoryRepository;
     PencilMarkHistoryRepository pencilMarkHistoryRepository;
     PencilMarksRepository pencilMarksRepository;
+    AccountRepository accountRepository;
     MapperService mapperService;
 
 //    public void updateGameProperties(UUID gameId, String currentState) {
@@ -109,6 +111,7 @@ public class GamePropertiesService {
 
     @Transactional
     public void deleteGame(UUID gameId) {
+        accountRepository.clearLatestGameId(gameId);
         gameHistoryRepository.deleteByGameId(gameId);
         pencilMarkHistoryRepository.deleteByGameId(gameId);
         pencilMarksRepository.deleteByGameId(gameId);
