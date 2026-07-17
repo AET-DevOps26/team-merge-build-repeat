@@ -72,7 +72,6 @@ export default function HistoryPage() {
     setClearConfirm(false)
     const ids = games.map(g => g.gameId)
     for (const id of ids) await handleDelete(id)
-    setActiveGameId(null)
   }
 
   return (
