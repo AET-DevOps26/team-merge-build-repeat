@@ -10,6 +10,7 @@ CREATE TABLE game_history (
     row INTEGER NOT NULL,
     col INTEGER NOT NULL,
     value INTEGER NOT NULL,
+    created_at TIMESTAMP,
     CONSTRAINT pk_game_history PRIMARY KEY (id)
 );
 
@@ -17,6 +18,7 @@ CREATE TABLE game_properties (
     id UUID NOT NULL,
     template_id UUID NOT NULL,
     current_state VARCHAR(255) NOT NULL,
+    user_id UUID,
     CONSTRAINT pk_game_properties PRIMARY KEY (id)
 );
 
@@ -36,4 +38,16 @@ CREATE TABLE pencil_marks (
     marks VARCHAR(255),
     version BIGINT,
     CONSTRAINT pk_pencil_marks PRIMARY KEY (id)
+);
+
+CREATE TABLE pencil_mark_history (
+    id UUID NOT NULL,
+    game_id UUID NOT NULL,
+    row INTEGER NOT NULL,
+    col INTEGER NOT NULL,
+    value INTEGER NOT NULL,
+    action VARCHAR(255) NOT NULL,
+    initial BOOLEAN NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    CONSTRAINT pk_pencil_mark_history PRIMARY KEY (id)
 );
