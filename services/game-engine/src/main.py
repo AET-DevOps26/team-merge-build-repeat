@@ -52,9 +52,13 @@ async def root():
 
 
 @app.get("/sudoku")
-async def get_sudoku():
-    """Get a random Sudoku puzzle"""
-    sudoku = generate_sudoku()
+async def get_sudoku(difficulty: str = "medium"):
+    """Get a random Sudoku puzzle with specified difficulty
+
+    Args:
+        difficulty: One of 'easy' (0.3), 'medium' (0.5), or 'hard' (0.8)
+    """
+    sudoku = generate_sudoku(difficulty)
     return JSONResponse({"sudoku": sudoku})
 
 

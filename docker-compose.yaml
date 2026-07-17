@@ -91,6 +91,8 @@ services:
       SPRING_CONFIG_IMPORT: optional:configtree:/run/secrets/
       SPRING_DATASOURCE_URL: jdbc:postgresql://application-database:5432/${APP_DATABASE_NAME:-game_database}
       SPRING_DATASOURCE_USERNAME: ${APP_DATABASE_USER:-postgres}
+      SUPABASE_AUTH_ISSUER: ${SUPABASE_AUTH_ISSUER:-https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1}
+      SUPABASE_AUTH_JWKS_URI: ${SUPABASE_AUTH_JWKS_URI:-https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1/.well-known/jwks.json}
     depends_on:
       application-database:
         condition: service_healthy

@@ -1,11 +1,21 @@
 from sudoku import Sudoku
 import random
 
-def generate_sudoku():
-    s = Sudoku(seed=random.randint(0, 10000)).difficulty(0.5)
+def map_difficulty_to_level(difficulty: str) -> float:
+    """Map difficulty string to numeric difficulty level (0.0 to 1.0)"""
+    difficulty_map = {
+        "easy": 0.4,
+        "medium": 0.5,
+        "hard": 0.6,
+    }
+    return difficulty_map.get(difficulty.lower(), 0.6)
+
+def generate_sudoku(difficulty: str = "medium"):
+    difficulty_level = map_difficulty_to_level(difficulty)
+    s = Sudoku(seed=random.randint(0, 10000)).difficulty(difficulty_level)
     i = 0
     while s.has_multiple_solutions():
-        s = Sudoku(seed=random.randint(0, 10000)).difficulty(0.5)
+        s = Sudoku(seed=random.randint(0, 10000)).difficulty(difficulty_level)
         i += 1
         if i > 100:
             raise ValueError("Konnte kein eindeutiges Sudoku generieren.")
