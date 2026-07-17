@@ -135,6 +135,9 @@ jobs:
       - name: Run frontend linting
         run: pnpm lint
 
+      - name: Run frontend tests
+        run: pnpm test -- --run
+
       - name: Run TypeScript static analysis
         run: pnpm typecheck
 
