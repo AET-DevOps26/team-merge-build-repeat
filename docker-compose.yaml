@@ -97,6 +97,7 @@ services:
         condition: service_healthy
     environment:
       SERVER_SERVLET_CONTEXT_PATH: ${CHAT_CONTEXT_PATH:-}
+      APPLICATION_SERVICE_BASE_URL: ${APPLICATION_SERVICE_BASE_URL:-http://application:8080${APPLICATION_CONTEXT_PATH:-}}
       SPRING_CONFIG_IMPORT: optional:configtree:/run/secrets/
       SPRING_DATASOURCE_URL: jdbc:postgresql://chat-database:5432/${CHAT_DATABASE_NAME:-chat_database}
       SPRING_DATASOURCE_USERNAME: ${CHAT_DATABASE_USER:-chat_user}
@@ -162,7 +163,10 @@ services:
         condition: service_healthy
     healthcheck:
       test:
-        [ "CMD-SHELL", "wget -qO- http://localhost:9187/metrics >/dev/null || exit 1" ]
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:9187/metrics >/dev/null || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -182,7 +186,10 @@ services:
         condition: service_healthy
     healthcheck:
       test:
-        [ "CMD-SHELL", "wget -qO- http://localhost:9187/metrics >/dev/null || exit 1" ]
+        [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:9187/metrics >/dev/null || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -196,7 +203,7 @@ services:
     volumes:
       - prometheus_data:/prometheus
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://localhost:9090" ]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -212,7 +219,7 @@ services:
     depends_on:
       - prometheus
     healthcheck:
-      test: [ "CMD-SHELL", "wget -qO- http://localhost:3000" ]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000"]
       interval: 10s
       timeout: 5s
       retries: 5
