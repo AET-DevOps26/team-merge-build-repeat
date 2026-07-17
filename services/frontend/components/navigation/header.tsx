@@ -26,11 +26,11 @@ export function Header({ showBackButton = false, variant = "default" }: HeaderPr
     setSignOutLoading(true)
     setSignOutError(null)
 
-    navigate("/", { replace: true })
     try {
       await signOut()
       localStorage.removeItem("activeGameId")
       setActiveGameId(null)
+      navigate("/", { replace: true })
     } catch (err) {
       setSignOutError(err instanceof Error ? err.message : "Sign out failed.")
     } finally {
