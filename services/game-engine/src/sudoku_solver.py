@@ -10,7 +10,10 @@ def map_difficulty_to_level(difficulty: str) -> float:
         "medium": 0.5,
         "hard": 0.6,
     }
-    return difficulty_map.get(difficulty.lower(), 0.6)
+    try:
+        return difficulty_map[difficulty.lower()]
+    except KeyError as exc:
+        raise ValueError("Unsupported difficulty. Choose easy, medium, or hard.") from exc
 
 def generate_sudoku(difficulty: str = "medium"):
     difficulty_level = map_difficulty_to_level(difficulty)
