@@ -5,6 +5,7 @@ import com.sudokuai.merge_build_repeat.repository.AccountRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
@@ -26,6 +27,7 @@ public class AccountService {
         repository.save(new Account(userId, gameId));
     }
 
+    @Transactional
     public void upsertAccount(UUID userId, UUID gameId) {
         repository.upsert(userId, gameId);
     }
