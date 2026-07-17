@@ -112,6 +112,11 @@ public class Controller {
     @PostMapping("/games/{gameId}/pencil-mark-history")
     public ResponseEntity<Void> savePencilMarkHistory(@PathVariable UUID gameId, @RequestBody SavePencilMarkHistoryRequest req, @AuthenticationPrincipal Jwt jwt) {
         requireOwnership(gameId, callerUserId(jwt));
+        if (req == null || req.row() < 0 || req.row() > 8 || req.column() < 0 || req.column() > 8
+                || req.value() < 1 || req.value() > 9 || !("ADD".equals(req.action()) || "REMOVE".equals(req.action()))
+                || req.initial() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pencil mark history request");
+        }
         pencilMarksService.saveToHistory(gameId, req.row(), req.column(), req.value(), req.action(), req.initial());
         return ResponseEntity.noContent().build();
     }
