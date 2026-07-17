@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Collection;
 import java.util.UUID;
 
 
@@ -26,5 +25,8 @@ public class GameProperties {
 
     @Column(nullable = false)
     private String currentState;
+
+    @Column
+    private UUID userId;
 
 }

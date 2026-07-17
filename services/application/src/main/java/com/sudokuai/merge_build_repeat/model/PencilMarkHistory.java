@@ -7,39 +7,46 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 import java.util.UUID;
 
-
 @Entity
-@Table(name = "game_history")
+@Table(name = "pencil_mark_history")
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class GameHistory {
+public class PencilMarkHistory {
     @Id
     @GeneratedValue
     @Column(columnDefinition = "uuid", updatable = false, nullable = false)
-    private UUID id; //Different for each record
+    private UUID id;
 
     @Column(nullable = false)
-    private UUID gameId; //Same for all records of the same game
+    private UUID gameId;
 
     @Column(nullable = false)
-    private Integer row;
+    private int row;
 
     @Column(nullable = false)
-    private Integer col;
+    private int col;
 
     @Column(nullable = false)
-    private Integer value;
+    private int value;
+
+    @Column(nullable = false)
+    private String action; // "ADD" or "REMOVE"
+
+    @Column(nullable = false)
+    private boolean initial;
 
     @CreationTimestamp
-    @Column(updatable = false)
+    @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
-    public GameHistory(UUID gameId, Integer row, Integer col, Integer value) {
+    public PencilMarkHistory(UUID gameId, int row, int col, int value, String action, boolean initial) {
         this.gameId = gameId;
         this.row = row;
         this.col = col;
         this.value = value;
+        this.action = action;
+        this.initial = initial;
     }
 }

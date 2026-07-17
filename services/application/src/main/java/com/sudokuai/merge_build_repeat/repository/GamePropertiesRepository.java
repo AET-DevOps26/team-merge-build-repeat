@@ -10,4 +10,6 @@ import java.util.UUID;
 @Repository
 public interface GamePropertiesRepository extends JpaRepository<GameProperties, UUID> {
 
+    java.util.List<GameProperties> findByUserIdOrderByIdAsc(UUID userId);
+
 }
