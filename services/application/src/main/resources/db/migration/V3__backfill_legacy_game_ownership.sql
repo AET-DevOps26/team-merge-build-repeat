@@ -1,7 +1,7 @@
 -- Only games referenced by exactly one legacy account can be assigned safely.
 -- Unreferenced or ambiguously referenced games remain ownerless and inaccessible.
 WITH uniquely_owned_games AS (
-    SELECT game_id, MIN(user_id) AS user_id
+    SELECT game_id, (array_agg(user_id))[1] AS user_id
     FROM account
     WHERE game_id IS NOT NULL
     GROUP BY game_id
