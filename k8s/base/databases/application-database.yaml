@@ -28,8 +28,8 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:17
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/aet-devops26/team-merge-build-repeat-postgres
+          imagePullPolicy: Always
           ports:
             - name: postgres
               containerPort: 5432
@@ -56,8 +56,8 @@ spec:
               readOnly: true
           resources:
             requests:
-              memory: 256Mi
-              cpu: 100m
+              memory: 32Mi
+              cpu: 10m
             limits:
               memory: 512Mi
               cpu: 250m

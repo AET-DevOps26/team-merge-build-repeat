@@ -16,7 +16,7 @@ spec:
       initContainers:
         - name: wait-for-application-database
           image: postgres:17
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
             - name: POSTGRES_DB
               valueFrom:
@@ -41,7 +41,7 @@ spec:
               memory: 32Mi
               cpu: 10m
             limits:
-              memory: 64Mi
+              memory: 512Mi
               cpu: 50m
       containers:
         - name: application
@@ -82,8 +82,8 @@ spec:
               readOnly: true
           resources:
             requests:
-              memory: 256Mi
-              cpu: 100m
+              memory: 32Mi
+              cpu: 10m
             limits:
               memory: 512Mi
               cpu: 250m

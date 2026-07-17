@@ -5,12 +5,13 @@ used by Ansible:
 
 - GHCR images for `frontend`, `application`, `chat`, `genai`, and `game-engine`
 - PostgreSQL `StatefulSet`s for the application and chat databases
+- PostgreSQL exporters, Prometheus, and Grafana with persistent data volumes
 - Init containers that wait for PostgreSQL before starting the dependent
   Spring services
 - Kubernetes `Secret` data for database passwords and the Logos/OpenAI key
 - Kubernetes `ConfigMap` data for the non-secret runtime configuration
-- NGINX Ingress routing for `/`, `/game-engine`, `/genai`, `/application`, and
-  `/chat`
+- NGINX Ingress routing for `/`, `/game-engine`, `/genai`, `/application`,
+  `/chat`, and `/grafana`
 - Hostless HTTP Ingress rules so the stack is reachable through the ingress
   controller IP before a domain exists
 
@@ -19,8 +20,8 @@ workflow attempts to apply `k8s/base/namespace.yaml`, but the main rendered
 Kustomize output does not include the namespace object so namespace-scoped
 deployment credentials can be used when the namespace already exists.
 
-The existing production path uses Logos/OpenAI by default, so `ollama` is kept
-under `optional/` and is not part of `kustomization.yaml`.
+Kubernetes production uses Logos/OpenAI. Ollama is available only in the local
+Docker Compose development configuration.
 
 For release flow details, see [../RELEASE.md](../RELEASE.md). For API and health
 URLs exposed through the ingress, see
@@ -56,11 +57,11 @@ Required production environment variables:
 | `CHAT_DATABASE_SPRING_PROFILE` | `docker` |
 | `APPLICATION_CONTEXT_PATH` | `/application` |
 | `CHAT_CONTEXT_PATH` | `/chat` |
-| `LLM_PROVIDER` | `openai` |
 | `GENAI_ROOT_PATH` | `/genai` |
 | `GAME_ENGINE_ROOT_PATH` | `/game-engine` |
 | `OPENAI_BASE_URL` | `https://logos.aet.cit.tum.de:8080/v1` |
 | `OPENAI_MODEL` | `openai/gpt-oss-120b` |
+| `PUBLIC_IP_ADDR` | Detected automatically from the frontend Ingress |
 | `SUPABASE_AUTH_ISSUER` | `https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1` |
 | `SUPABASE_AUTH_JWKS_URI` | `https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1/.well-known/jwks.json` |
 | `VITE_SUPABASE_URL` | `https://pwjnldzqwwagnxjycfaq.supabase.co` |
@@ -75,9 +76,7 @@ Required production secrets:
 | `CHAT_DATABASE_PASSWORD` | Chat PostgreSQL password |
 | `LOGOS_KEY` | Logos/OpenAI API key |
 
-Set `LLM_PROVIDER=openai` for the default production path. Set
-`LLM_PROVIDER=ollama` only when the optional Ollama workload is deployed and the
-GenAI service can reach it.
+The GenAI workload uses Logos/OpenAI in Kubernetes production.
 
 Render the standard manifests locally with:
 
@@ -89,9 +88,3 @@ The local root kustomization renders application images with `latest`. The
 production GitHub Actions workflow renders `k8s/overlays/release` and replaces
 `RELEASE_TAG` with the SemVer tag before applying manifests, so production never
 deploys `latest`.
-
-Apply the optional Ollama workload only when `LLM_PROVIDER=ollama` is intended:
-
-```sh
-kubectl apply -f k8s/optional/ollama.yaml
-```

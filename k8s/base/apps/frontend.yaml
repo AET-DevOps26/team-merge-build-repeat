@@ -16,16 +16,16 @@ spec:
       containers:
         - name: frontend
           image: ghcr.io/aet-devops26/team-merge-build-repeat-frontend
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
           resources:
             requests:
-              memory: 64Mi
-              cpu: 25m
+              memory: 32Mi
+              cpu: 10m
             limits:
-              memory: 128Mi
+              memory: 512Mi
               cpu: 100m
           livenessProbe:
             httpGet:

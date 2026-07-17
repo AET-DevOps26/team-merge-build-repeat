@@ -58,7 +58,7 @@ Local Ollama:
 
 ```env
 LLM_PROVIDER=ollama
-OLLAMA_MODEL=gemma4:e4b
+OLLAMA_MODEL=qwen3:4b
 ```
 
 Start with the `local-llm` profile so the `ollama` service exists.

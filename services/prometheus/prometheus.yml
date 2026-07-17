@@ -8,13 +8,13 @@ scrape_configs:
       - targets: [ 'localhost:9090' ]
 
   - job_name: 'chat-service'
-    metrics_path: '/actuator/prometheus'
+    metrics_path: '${CHAT_CONTEXT_PATH}/actuator/prometheus'
     static_configs:
       - targets:
           - 'chat:8080'
 
   - job_name: 'application-service'
-    metrics_path: '/actuator/prometheus'
+    metrics_path: '${APPLICATION_CONTEXT_PATH}/actuator/prometheus'
     static_configs:
       - targets:
           - 'application:8080'

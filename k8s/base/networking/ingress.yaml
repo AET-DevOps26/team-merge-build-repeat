@@ -68,3 +68,10 @@ spec:
                 name: chat
                 port:
                   name: http
+          - path: /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  name: http

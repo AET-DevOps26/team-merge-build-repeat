@@ -16,7 +16,7 @@ spec:
       containers:
         - name: game-engine
           image: ghcr.io/aet-devops26/team-merge-build-repeat-game-engine
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
@@ -28,10 +28,10 @@ spec:
                   key: GAME_ENGINE_ROOT_PATH
           resources:
             requests:
-              memory: 64Mi
+              memory: 32Mi
               cpu: 10m
             limits:
-              memory: 128Mi
+              memory: 512Mi
               cpu: 100m
           livenessProbe:
             httpGet:

@@ -53,9 +53,6 @@ jobs:
           - name: genai
             context: ./services/genai
             image: genai
-          - name: ollama
-            context: ./services/ollama
-            image: ollama
           - name: postgres
             context: ./services/postgres
             image: postgres
@@ -116,7 +113,7 @@ jobs:
 
       - name: Extract image metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE_PREFIX }}-${{ matrix.service.image }}
           tags: |
@@ -153,11 +150,8 @@ jobs:
       CHAT_DATABASE_SPRING_PROFILE: ${{ vars.CHAT_DATABASE_SPRING_PROFILE || 'docker' }}
       APPLICATION_CONTEXT_PATH: ${{ vars.APPLICATION_CONTEXT_PATH || '/application' }}
       CHAT_CONTEXT_PATH: ${{ vars.CHAT_CONTEXT_PATH || '/chat' }}
-      LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'openai' }}
       GENAI_ROOT_PATH: ${{ vars.GENAI_ROOT_PATH || '/genai' }}
       GAME_ENGINE_ROOT_PATH: ${{ vars.GAME_ENGINE_ROOT_PATH || '/game-engine' }}
-      OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'gemma4:e4b' }}
-      OLLAMA_CONTEXT_LENGTH: ${{ vars.OLLAMA_CONTEXT_LENGTH || '8192' }}
       SUPABASE_AUTH_ISSUER: ${{ vars.SUPABASE_AUTH_ISSUER || 'https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1' }}
       SUPABASE_AUTH_JWKS_URI: ${{ vars.SUPABASE_AUTH_JWKS_URI || 'https://pwjnldzqwwagnxjycfaq.supabase.co/auth/v1/.well-known/jwks.json' }}
       OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL || 'https://logos.aet.cit.tum.de:8080/v1' }}
@@ -231,13 +225,11 @@ jobs:
             --from-literal=CHAT_DATABASE_SPRING_PROFILE="$CHAT_DATABASE_SPRING_PROFILE" \
             --from-literal=APPLICATION_CONTEXT_PATH="$APPLICATION_CONTEXT_PATH" \
             --from-literal=CHAT_CONTEXT_PATH="$CHAT_CONTEXT_PATH" \
-            --from-literal=LLM_PROVIDER="$LLM_PROVIDER" \
             --from-literal=GENAI_ROOT_PATH="$GENAI_ROOT_PATH" \
             --from-literal=GAME_ENGINE_ROOT_PATH="$GAME_ENGINE_ROOT_PATH" \
-            --from-literal=OLLAMA_MODEL="$OLLAMA_MODEL" \
-            --from-literal=OLLAMA_CONTEXT_LENGTH="$OLLAMA_CONTEXT_LENGTH" \
             --from-literal=OPENAI_BASE_URL="$OPENAI_BASE_URL" \
             --from-literal=OPENAI_MODEL="$OPENAI_MODEL" \
+            --from-literal=PUBLIC_IP_ADDR=localhost \
             --from-literal=SUPABASE_AUTH_ISSUER="$SUPABASE_AUTH_ISSUER" \
             --from-literal=SUPABASE_AUTH_JWKS_URI="$SUPABASE_AUTH_JWKS_URI" \
             --dry-run=client \
@@ -251,6 +243,28 @@ jobs:
           sed -i "s/newTag: RELEASE_TAG/newTag: ${{ steps.version.outputs.app_version }}/g" \
             "$release_render_dir/k8s/overlays/release/kustomization.yaml"
           kubectl kustomize "$release_render_dir/k8s/overlays/release" | kubectl apply -f -
+
+      - name: Configure public Grafana URL
+        shell: bash
+        run: |
+          public_address=""
+          for attempt in {1..60}; do
+            public_address="$(kubectl -n merge-build-repeat get ingress frontend \
+              -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+            if [ -z "$public_address" ]; then
+              public_address="$(kubectl -n merge-build-repeat get ingress frontend \
+                -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')"
+            fi
+            if [ -n "$public_address" ]; then
+              break
+            fi
+            sleep 5
+          done
+
+          : "${public_address:?Ingress controller did not publish a public IP address or hostname within five minutes.}"
+          kubectl -n merge-build-repeat patch configmap app-config --type merge \
+            --patch "{\"data\":{\"PUBLIC_IP_ADDR\":\"$public_address\"}}"
+          kubectl -n merge-build-repeat rollout restart deployment/grafana
 
       - name: Wait for rollout
         shell: bash
@@ -269,4 +283,8 @@ jobs:
           kubectl -n merge-build-repeat rollout status deployment/genai --timeout=5m
           kubectl -n merge-build-repeat rollout status deployment/game-engine --timeout=5m
           kubectl -n merge-build-repeat rollout status deployment/frontend --timeout=5m
+          kubectl -n merge-build-repeat rollout status deployment/app-db-exporter --timeout=5m
+          kubectl -n merge-build-repeat rollout status deployment/chat-db-exporter --timeout=5m
+          kubectl -n merge-build-repeat rollout status deployment/prometheus --timeout=5m
+          kubectl -n merge-build-repeat rollout status deployment/grafana --timeout=5m
           kubectl -n merge-build-repeat get pods,svc,ingress

@@ -16,7 +16,7 @@ spec:
       containers:
         - name: genai
           image: ghcr.io/aet-devops26/team-merge-build-repeat-genai
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - name: http
               containerPort: 8080
@@ -28,17 +28,7 @@ spec:
             - name: GAME_SERVICE_URL
               value: http://application:8080/application
             - name: LLM_PROVIDER
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: LLM_PROVIDER
-            - name: OLLAMA_BASE_URL
-              value: http://ollama:11434
-            - name: OLLAMA_MODEL
-              valueFrom:
-                configMapKeyRef:
-                  name: app-config
-                  key: OLLAMA_MODEL
+              value: openai
             - name: OPENAI_BASE_URL
               valueFrom:
                 configMapKeyRef:
@@ -62,8 +52,8 @@ spec:
               readOnly: true
           resources:
             requests:
-              memory: 256Mi
-              cpu: 50m
+              memory: 32Mi
+              cpu: 10m
             limits:
               memory: 512Mi
               cpu: 200m
