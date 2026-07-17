@@ -115,7 +115,7 @@ async function sendGameMutation(path: string, accessToken: string | null, method
     ...(body ? { body: JSON.stringify(body) } : {}),
   })
   if (!res.ok) throw new Error(`Game update failed: ${res.status}`)
-  if (method === "POST" && path.endsWith("/history") && await res.json() !== true) {
+  if (method === "POST" && path.endsWith("/history") && res.status !== 204 && await res.json() !== true) {
     throw new Error("Game update was rejected")
   }
 }
