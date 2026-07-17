@@ -5,6 +5,7 @@ import com.sudokuai.merge_build_repeat.model.GameHistory;
 import com.sudokuai.merge_build_repeat.repository.GameHistoryRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +21,7 @@ public class GameHistoryService {
         repository.save(new GameHistory(gameId, row, col, value));
     }
 
+    @Transactional
     public boolean validateAndSaveMove(UUID gameId, Integer row, Integer col, Integer value) {
         if (gameId == null || row == null || col == null || value == null) {
             return false;
@@ -28,6 +30,7 @@ public class GameHistoryService {
             return false;
         }
 
+        gamePropertiesService.updateGameProperties(gameId, row, col, value);
         repository.save(new GameHistory(gameId, row, col, value));
         return true;
     }
