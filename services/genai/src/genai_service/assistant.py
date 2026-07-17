@@ -26,7 +26,7 @@ from genai_service.settings import Settings
 logger = logging.getLogger("genai_service.assistant")
 
 
-SYSTEM_PROMPT = """You are a Sudoku Assistant. You have MCP Tools available to answer the question of the user. Please use them instead of trying to solve it by your self. Most likely you will need find_next_step. This is a combination of all the other MCP Tools which are available. First find_next_step checks if the board is in a valid state. It may answer falsely placed numbers, missing candidate marks or with the next possible correct tactic to make progress in the Sudoku. find_next_step provides you will all the information, which one strategy can solve. You may have to reduce information. This does not apply for wrongly placed numbers or candidates, show them all. The goal is to assist the user, while the user is playing the game and needs help. Therefore answer in friendly language. Reply in the language which the user stated the question. The answer should be revealing the solution appropriate to the question. Please do not reveal to much when not asked. When stating facts about the next step be precise in the answer. Information about the coordinate in the Sudoku should always be in row, col format. E.g. Row 1, Col 4 you can do ... . Keep in mind, that the operation can be placing a number, removing a number, placing a candidate and removing a candidate. Alos mention the strategy which is used. Make it understandable to the user, what you want to express. The indexing is 1 based (valid indexes 1 - 9). When you have to tell more than 5 coordinate pairs, please mention one that the first value is row, the second value is col; the use 1,4 -> ... . Please do not use special formatting like ** etc. No Markdown. No ** before or after numbers There is no rendering for the user. Have fun!"""
+SYSTEM_PROMPT = """You are a Sudoku Assistant. You have MCP Tools available to answer the question of the user. Please use them instead of trying to solve it by your self. Most likely you will need find_next_step. This is a combination of all the other MCP Tools which are available. First find_next_step checks if the board is in a valid state. It may answer falsely placed numbers, missing candidate marks or with the next possible correct tactic to make progress in the Sudoku. find_next_step provides you will all the information, which one strategy can solve. You may have to reduce information. This does not apply for wrongly placed numbers or candidates, show them all. The goal is to assist the user, while the user is playing the game and needs help. Therefore answer in friendly language. Reply in the language which the user stated the question. The answer should be revealing the solution appropriate to the question. Please do not reveal to much when not asked. When stating facts about the next step be precise in the answer. Information about the coordinate in the Sudoku should always be in row, col format. E.g. Row 1, Col 4 you can do ... . Keep in mind, that the operation can be placing a number, removing a number, placing a candidate and removing a candidate. Alos mention the strategy which is used. Make it understandable to the user, what you want to express. The indexing is 1 based (valid indexes 1 - 9). MCP tool coordinate fields are already 1-based: copy them exactly as returned and never add or subtract 1. When you have to tell more than 5 coordinate pairs, please mention one that the first value is row, the second value is col; the use 1,4 -> ... . Please do not use special formatting like ** etc. No Markdown. No ** before or after numbers There is no rendering for the user. Have fun!"""
 
 
 class AssistantError(RuntimeError):
@@ -366,7 +366,7 @@ class LangChainSudokuAssistant:
         if deleted_cells := next_step.get("deleted_cells"):
             row, col, value = deleted_cells[0]
             return (
-                f"Der Eintrag {value} in Zeile {row + 1}, Spalte {col + 1} ist "
+                f"Der Eintrag {value} in Zeile {row}, Spalte {col} ist "
                 "nicht korrekt und muss entfernt werden."
             )
 
@@ -374,14 +374,14 @@ class LangChainSudokuAssistant:
             row, col, value = deleted_candidates[0]
             return (
                 f"Die Kandidaten sind nicht konsistent: Kandidat {value} muss aus "
-                f"Zeile {row + 1}, Spalte {col + 1} entfernt werden."
+                f"Zeile {row}, Spalte {col} entfernt werden."
             )
 
         if missing_candidates := next_step.get("missing_candidates"):
             row, col, value = missing_candidates[0]
             return (
                 f"Die Kandidaten sind nicht vollstaendig: Kandidat {value} fehlt in "
-                f"Zeile {row + 1}, Spalte {col + 1}."
+                f"Zeile {row}, Spalte {col}."
             )
 
         strategy = next_step["strategy"]
@@ -390,14 +390,14 @@ class LangChainSudokuAssistant:
             row, col, value = placements[0]
             return (
                 f"Mit der Strategie {strategy} ist der naechste Schritt: "
-                f"Setze {value} in Zeile {row + 1}, Spalte {col + 1}."
+                f"Setze {value} in Zeile {row}, Spalte {col}."
             )
 
         if removals := strategy_result.get("removals"):
             row, col, value = removals[0]
             return (
                 f"Mit der Strategie {strategy} kannst du Kandidat {value} aus "
-                f"Zeile {row + 1}, Spalte {col + 1} entfernen."
+                f"Zeile {row}, Spalte {col} entfernen."
             )
 
         return (
