@@ -353,7 +353,7 @@ Each team fills in one row. Keep entries concise — bullet points are fine.
 | Team | Overall | Progress (since last meeting) | Challenges / Problems | Next Steps (until next meeting) |
 |---|---|---|---|---|
 | **Klaudia** | 🟢 | k8 files for the application | |
-| **Nico** | 🟢 |  |  |
+| **Nico** | 🟢 | further frontend features |  |
 | **Marvin** | 🟢 | splited docker compose up in dev and production |  |  |
 
 > **How to fill this in:**
