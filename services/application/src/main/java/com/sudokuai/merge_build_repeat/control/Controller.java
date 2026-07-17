@@ -40,7 +40,7 @@ public class Controller {
     }
 
     @Transactional
-    @GetMapping("/games/random")
+    @PostMapping("/games/random")
     public ResponseEntity<GameResponse> getRandomGame(@RequestParam String difficulty, @AuthenticationPrincipal Jwt jwt) {
         UUID userId = callerUserId(jwt);
         GameResponse newGame = gameTemplateService.generateNewGameWithDifficulty(difficulty, userId);
@@ -49,7 +49,7 @@ public class Controller {
     }
 
     @Transactional
-    @GetMapping("/templates/{templateId}/new-game")
+    @PostMapping("/templates/{templateId}/new-game")
     public ResponseEntity<GameResponse> getNewGameByTemplateId(@PathVariable UUID templateId, @AuthenticationPrincipal Jwt jwt) {
         UUID userId = callerUserId(jwt);
         GameResponse newGame = gameTemplateService.createNewGameFromTemplate(templateId, userId);

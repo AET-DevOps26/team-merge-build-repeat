@@ -34,6 +34,7 @@ export default function HomePage() {
     setError(null)
     try {
       const res = await fetch(`/application/v1/games/random?difficulty=${difficulty}`, {
+        method: "POST",
         headers: {
           "Authorization": `Bearer ${accessToken}`,
         },
@@ -65,6 +66,7 @@ export default function HomePage() {
     setError(null)
     try {
       const res = await fetch(`/application/v1/templates/${templateId}/new-game`, {
+        method: "POST",
         headers: {
           "Authorization": `Bearer ${accessToken}`,
         },
