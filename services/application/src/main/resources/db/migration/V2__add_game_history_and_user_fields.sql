@@ -2,7 +2,7 @@ ALTER TABLE game_properties
     ADD COLUMN user_id UUID;
 
 ALTER TABLE game_history
-    ADD COLUMN created_at TIMESTAMP WITH TIME ZONE;
+    ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
 
 CREATE TABLE pencil_mark_history (
     id UUID NOT NULL,
