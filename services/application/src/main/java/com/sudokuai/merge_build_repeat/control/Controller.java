@@ -178,6 +178,7 @@ public class Controller {
 
     @PutMapping("/users/account")
     public ResponseEntity<Void> updateAccount(@RequestParam UUID gameId, @AuthenticationPrincipal Jwt jwt) {
+        requireOwnership(gameId, callerUserId(jwt));
         accountService.upsertAccount(callerUserId(jwt), gameId);
         return ResponseEntity.ok().build();
     }
