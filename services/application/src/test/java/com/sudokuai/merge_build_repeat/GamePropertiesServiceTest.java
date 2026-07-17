@@ -170,6 +170,36 @@ class GamePropertiesServiceTest {
     }
 
     @Nested
+    class IsEditableCell {
+
+        @Test
+        void shouldReturnFalseForTemplateClue() {
+            UUID gameId = UUID.randomUUID();
+            UUID templateId = UUID.randomUUID();
+            GameProperties properties = new GameProperties(gameId, templateId, "current", UUID.randomUUID());
+            GameTemplate template = new GameTemplate();
+            template.setTemplateData("5" + "0".repeat(80));
+            when(repository.findById(gameId)).thenReturn(Optional.of(properties));
+            when(templateRepository.findById(templateId)).thenReturn(Optional.of(template));
+
+            assertFalse(gamePropertiesService.isEditableCell(gameId, 0, 0));
+        }
+
+        @Test
+        void shouldReturnTrueForEmptyTemplateCell() {
+            UUID gameId = UUID.randomUUID();
+            UUID templateId = UUID.randomUUID();
+            GameProperties properties = new GameProperties(gameId, templateId, "current", UUID.randomUUID());
+            GameTemplate template = new GameTemplate();
+            template.setTemplateData("5" + "0".repeat(80));
+            when(repository.findById(gameId)).thenReturn(Optional.of(properties));
+            when(templateRepository.findById(templateId)).thenReturn(Optional.of(template));
+
+            assertTrue(gamePropertiesService.isEditableCell(gameId, 0, 1));
+        }
+    }
+
+    @Nested
     class UpdateGameProperties {
 
         @Test

@@ -77,6 +77,20 @@ public class GamePropertiesService {
         return null;
     }
 
+    public boolean isEditableCell(UUID gameId, int row, int col) {
+        GameProperties properties = repository.findById(gameId).orElse(null);
+        if (properties == null) {
+            return false;
+        }
+
+        GameTemplate template = templateRepository.findById(properties.getTemplateId()).orElse(null);
+        if (template == null || template.getTemplateData().length() != 81) {
+            return false;
+        }
+
+        return template.getTemplateData().charAt(row * 9 + col) == '0';
+    }
+
 //    public void updateGameProperties(UUID gameId, Integer row, Integer col, Integer value) {
 //        GameProperties properties = repository.findById(gameId).orElse(null);
 //        if (properties != null) {

@@ -64,6 +64,7 @@ class GameHistoryServiceTest {
             Integer row = 0;
             Integer col = 8;
             Integer value = 9;
+            when(gamePropertiesService.isEditableCell(gameId, row, col)).thenReturn(true);
 
             boolean result = gameHistoryService.validateAndSaveMove(gameId, row, col, value);
 
@@ -77,6 +78,21 @@ class GameHistoryServiceTest {
             assertEquals(col, savedHistory.getCol());
             assertEquals(value, savedHistory.getValue());
             verify(gamePropertiesService).updateGameProperties(gameId, row, col, value);
+        }
+
+        @Test
+        void shouldRejectMoveOnTemplateClue() {
+            UUID gameId = UUID.randomUUID();
+            Integer row = 0;
+            Integer col = 0;
+            Integer value = 9;
+            when(gamePropertiesService.isEditableCell(gameId, row, col)).thenReturn(false);
+
+            boolean result = gameHistoryService.validateAndSaveMove(gameId, row, col, value);
+
+            assertFalse(result);
+            verify(repository, never()).save(any(GameHistory.class));
+            verify(gamePropertiesService, never()).updateGameProperties(any(), any(), any(), any());
         }
     }
 

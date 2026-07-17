@@ -29,6 +29,9 @@ public class GameHistoryService {
         if (row < 0 || row > 8 || col < 0 || col > 8 || value < 0 || value > 9) {
             return false;
         }
+        if (!gamePropertiesService.isEditableCell(gameId, row, col)) {
+            return false;
+        }
 
         gamePropertiesService.updateGameProperties(gameId, row, col, value);
         repository.save(new GameHistory(gameId, row, col, value));
