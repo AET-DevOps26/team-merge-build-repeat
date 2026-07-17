@@ -1,21 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
+import { useParams, useLocation, useNavigate } from "react-router-dom"
 import { Header, BottomNav } from "@/components/navigation"
 import { SudokuGrid, NumberPad } from "@/components/game"
 import { GameChat } from "@/components/chat"
 import { useAuth } from "@/src/auth/auth-context"
+import { useGame } from "@/src/game-context"
 
 const EMPTY_GRID = Array.from({ length: 9 }, () => Array(9).fill(0))
-
-// Fixed game id used for the chat until per-game ids are wired up.
-const GAME_ID = "00000000-0000-0000-0000-000000000001"
-
-type SingleMove =
-  | { type: "number"; row: number; col: number; value: number }
-  | { type: "pencil"; row: number; col: number; value: number }
-
-type Move =
-  | SingleMove
-  | { type: "batch"; moves: SingleMove[] }
 
 function computeInitialMarks(puzzle: number[][]): number[][][] {
   const marks: number[][][] = Array.from({ length: 9 }, () =>
@@ -38,6 +29,35 @@ function computeInitialMarks(puzzle: number[][]): number[][][] {
   return marks
 }
 
+type SingleMove =
+  | { type: "number"; row: number; col: number; value: number }
+  | { type: "pencil"; row: number; col: number; value: number; action: "ADD" | "REMOVE" }
+
+type Move =
+  | SingleMove
+  | { type: "batch"; moves: SingleMove[] }
+
+
+async function fetchGameFromApplication(gameId: string, accessToken: string): Promise<{ templateData: number[][]; solutionData: number[][] }> {
+  const [templateRes, stateRes] = await Promise.all([
+    fetch(`/application/v1/games/${gameId}/template`, {
+      headers: { "Authorization": `Bearer ${accessToken}` },
+    }),
+    fetch(`/application/v1/games/${gameId}/state`, {
+      headers: { "Authorization": `Bearer ${accessToken}` },
+    }),
+  ])
+  if (!templateRes.ok || !stateRes.ok) {
+    const status = !templateRes.ok ? templateRes.status : stateRes.status
+    const err = new Error(`Failed to fetch game: ${status}`)
+    ;(err as any).status = status
+    throw err
+  }
+  const templateData = await templateRes.json()
+  const stateData = await stateRes.json()
+  return { templateData, solutionData: stateData }
+}
+
 async function fetchSudoku(): Promise<number[][]> {
   const res = await fetch("/game-engine/sudoku")
   if (!res.ok) throw new Error(`Failed to fetch sudoku: ${res.status}`)
@@ -56,18 +76,62 @@ async function fetchSolution(puzzle: number[][]): Promise<number[][]> {
   return data.sudoku
 }
 
+async function fetchGameHistory(gameId: string, accessToken: string): Promise<Array<{ row: number; col: number; value: number; createdAt: string | null }>> {
+  const res = await fetch(`/application/v1/games/${gameId}/history`, {
+    headers: { "Authorization": `Bearer ${accessToken}` },
+  })
+  if (!res.ok) throw new Error(`Failed to fetch history: ${res.status}`)
+  const data = await res.json()
+  return data
+}
+
+async function fetchGameInfo(gameId: string, accessToken: string): Promise<{ templateId: string }> {
+  const res = await fetch(`/application/v1/games/${gameId}/info`, {
+    headers: { "Authorization": `Bearer ${accessToken}` },
+  })
+  if (!res.ok) throw new Error(`Failed to fetch game info: ${res.status}`)
+  const data = await res.json()
+  return data
+}
+
+type PencilMarkHistoryEntry = { row: number; col: number; value: number; action: "ADD" | "REMOVE"; initial: boolean; createdAt: string | null }
+
+async function fetchPencilMarkHistory(gameId: string, accessToken: string): Promise<PencilMarkHistoryEntry[]> {
+  const res = await fetch(`/application/v1/games/${gameId}/pencil-mark-history`, {
+    headers: { "Authorization": `Bearer ${accessToken}` },
+  })
+  if (!res.ok) throw new Error(`Failed to fetch pencil mark history: ${res.status}`)
+  return res.json()
+}
+
+async function savePencilMarkHistory(gameId: string, accessToken: string, row: number, col: number, value: number, action: "ADD" | "REMOVE", initial: boolean): Promise<void> {
+  await fetch(`/application/v1/games/${gameId}/pencil-mark-history`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+    body: JSON.stringify({ row, column: col, value, action, initial })
+  })
+}
+
 export default function GamePage() {
+  const { gameId: gameIdParam } = useParams<{ gameId: string }>()
+  const location = useLocation()
+  const navigate = useNavigate()
   const { accessToken } = useAuth()
+  const { setActiveGameId } = useGame()
+  const [gameId, setGameId] = useState<string | null>(gameIdParam || null)
+  const [templateId, setTemplateId] = useState<string | null>((location.state as any)?.templateId || null)
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null)
   const [puzzle, setPuzzle] = useState<number[][]>(EMPTY_GRID)
   const [initialMarks, setInitialMarks] = useState<number[][][]>([])
   const [moves, setMoves] = useState<Move[]>([])
+  const [initialMoveCount, setInitialMoveCount] = useState(0)
   const [redoMoves, setRedoMoves] = useState<Move[]>([])
   const [pencilMode, setPencilMode] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [wrongCells, setWrongCells] = useState<Set<string>>(new Set())
   const [correctCells, setCorrectCells] = useState<Set<string>>(new Set())
+  const [copyFeedback, setCopyFeedback] = useState(false)
 
   const givenCells = useMemo(
     () => puzzle.map(row => row.map(cell => Boolean(cell))),
@@ -120,17 +184,64 @@ export default function GamePage() {
     setWrongCells(new Set())
     setCorrectCells(new Set())
     try {
-      const raw = await fetchSudoku()
-      const sudoku = raw.map(row => row.map(cell => cell ?? 0))
-      setPuzzle(sudoku)
-      setInitialMarks(computeInitialMarks(sudoku))
-      setMoves([])
+      if (gameId) {
+        // Load game from Application Service
+        const gameData = await fetchGameFromApplication(gameId, accessToken)
+        const puzzle = gameData.templateData.map(row => row.map(cell => cell ?? 0))
+        setPuzzle(puzzle)
+        setInitialMarks(computeInitialMarks(puzzle))
+
+        // Fetch templateId if not set
+        if (!templateId) {
+          const gameInfo = await fetchGameInfo(gameId, accessToken)
+          setTemplateId(gameInfo.templateId)
+        }
+
+        // Fetch both histories and merge in chronological order
+        const [history, pencilHistory] = await Promise.all([
+          fetchGameHistory(gameId, accessToken),
+          fetchPencilMarkHistory(gameId, accessToken),
+        ])
+
+        type TimestampedMove = Move & { createdAt: string | null }
+        const numberedMoves: TimestampedMove[] = history.map(h => ({
+          type: "number" as const, row: h.row, col: h.col, value: h.value, createdAt: h.createdAt,
+        }))
+        const pencilMoves: TimestampedMove[] = pencilHistory
+          .filter(h => !h.initial)
+          .map(h => ({
+            type: "pencil" as const, row: h.row, col: h.col, value: h.value, action: h.action, createdAt: h.createdAt,
+          }))
+
+        const merged = [...numberedMoves, ...pencilMoves]
+          .sort((a, b) => {
+            if (!a.createdAt) return -1
+            if (!b.createdAt) return 1
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          })
+          .map(({ createdAt: _, ...move }) => move as Move)
+
+        setInitialMoveCount(0)
+        setMoves(merged)
+        setActiveGameId(gameId)
+      } else {
+        // Fallback: Load from Game Engine (old behavior)
+        const raw = await fetchSudoku()
+        const puzzle = raw.map(row => row.map(cell => cell ?? 0))
+        setPuzzle(puzzle)
+        setMoves([])
+      }
     } catch (e) {
+      const status = (e as any)?.status
+      if (status === 403) {
+        navigate("/", { replace: true })
+        return
+      }
       setError(e instanceof Error ? e.message : "Failed to load puzzle")
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [gameId, accessToken, templateId, setActiveGameId, navigate])
 
   useEffect(() => {
     loadNewGame()
@@ -154,12 +265,28 @@ export default function GamePage() {
       return next
     })
     setRedoMoves([])
-    setMoves(prev => [...prev, {
-      type: pencilMode ? "pencil" : "number",
-      row: selectedCell.row,
-      col: selectedCell.col,
-      value: num,
-    }])
+
+    if (pencilMode) {
+      const action = pencilMarks[selectedCell.row][selectedCell.col].includes(num) ? "REMOVE" : "ADD"
+      const newMove: Move = { type: "pencil", row: selectedCell.row, col: selectedCell.col, value: num, action }
+      setMoves(prev => [...prev, newMove])
+      if (gameId) {
+        savePencilMarkHistory(gameId, accessToken, selectedCell.row, selectedCell.col, num, action, false)
+          .catch(err => console.error("Failed to save pencil mark:", err))
+      }
+      return
+    }
+
+    const newMove: Move = { type: "number", row: selectedCell.row, col: selectedCell.col, value: num }
+    setMoves(prev => [...prev, newMove])
+
+    if (!pencilMode && gameId) {
+      fetch(`/application/v1/games/${gameId}/history`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+        body: JSON.stringify({ row: selectedCell.row, col: selectedCell.col, value: num })
+      }).catch(err => console.error("Failed to save move:", err))
+    }
   }
 
   const handleDelete = () => {
@@ -177,10 +304,18 @@ export default function GamePage() {
     })
     setRedoMoves([])
     setMoves(prev => [...prev, { type: "number", row: selectedCell.row, col: selectedCell.col, value: 0 }])
+
+    if (gameId) {
+      fetch(`/application/v1/games/${gameId}/history`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+        body: JSON.stringify({ row: selectedCell.row, col: selectedCell.col, value: 0 })
+      }).catch(err => console.error("Failed to save delete:", err))
+    }
   }
 
   const handleUndo = () => {
-    if (moves.length === 0) return
+    if (moves.length <= initialMoveCount) return
     const lastMove = moves[moves.length - 1]
     const cellsToUnhighlight = new Set<string>()
 
@@ -207,18 +342,50 @@ export default function GamePage() {
       })
     }
 
-    setMoves(prev => {
-      const newMoves = prev.slice(0, -1)
-      setRedoMoves([lastMove])
-      return newMoves
-    })
+    setMoves(prev => prev.slice(0, -1))
+    setRedoMoves(prev => [lastMove, ...prev])
+
+    if (gameId) {
+      if (lastMove.type === "pencil") {
+        fetch(`/application/v1/games/${gameId}/pencil-mark-history`, {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${accessToken}` },
+        }).catch(err => console.error("Failed to undo pencil mark:", err))
+      } else if (lastMove.type === "number" || lastMove.type === "batch") {
+        fetch(`/application/v1/games/${gameId}/history`, {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${accessToken}` },
+        }).catch(err => console.error("Failed to undo move:", err))
+      }
+    }
   }
 
   const handleRedo = () => {
     if (redoMoves.length === 0) return
     const moveToRedo = redoMoves[0]
-    setRedoMoves([])
+    setRedoMoves(prev => prev.slice(1))
     setMoves(prev => [...prev, moveToRedo])
+
+    if (!gameId) return
+
+    if (moveToRedo.type === "pencil") {
+      savePencilMarkHistory(gameId, accessToken, moveToRedo.row, moveToRedo.col, moveToRedo.value, moveToRedo.action, false)
+        .catch(err => console.error("Failed to redo pencil mark:", err))
+    } else if (moveToRedo.type === "number") {
+      fetch(`/application/v1/games/${gameId}/history`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+        body: JSON.stringify({ row: moveToRedo.row, col: moveToRedo.col, value: moveToRedo.value })
+      }).catch(err => console.error("Failed to redo move:", err))
+    } else if (moveToRedo.type === "batch") {
+      for (const move of moveToRedo.moves) {
+        fetch(`/application/v1/games/${gameId}/history`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+          body: JSON.stringify({ row: move.row, col: move.col, value: move.value })
+        }).catch(err => console.error("Failed to redo batch move:", err))
+      }
+    }
   }
 
   const handleCheck = useCallback(async () => {
@@ -268,10 +435,32 @@ export default function GamePage() {
       setWrongCells(solvedWrong)
       setCorrectCells(correct)
       setMoves(prev => [...prev, { type: "batch", moves: batchMoves }])
+
+      if (gameId) {
+        for (const move of batchMoves) {
+          fetch(`/application/v1/games/${gameId}/history`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+            body: JSON.stringify({ row: move.row, col: move.col, value: move.value })
+          }).catch(err => console.error("Failed to save solve move:", err))
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to solve puzzle")
     }
-  }, [puzzle, grid, givenCells])
+  }, [puzzle, grid, givenCells, gameId, accessToken])
+
+  const handleCopyTemplateId = async () => {
+    if (templateId) {
+      try {
+        await navigator.clipboard.writeText(templateId)
+        setCopyFeedback(true)
+        setTimeout(() => setCopyFeedback(false), 2000)
+      } catch (err) {
+        console.error('Failed to copy:', err)
+      }
+    }
+  }
 
   return (
     <div className="h-screen bg-background flex flex-col">
@@ -279,8 +468,8 @@ export default function GamePage() {
 
       <main className="flex-1 flex flex-row items-stretch px-4 py-4 pb-32 gap-4 min-h-0 overflow-hidden">
         <div className="flex-1 hidden md:flex flex-col min-h-0">
-          {accessToken && (
-            <GameChat gameId={GAME_ID} accessToken={accessToken} />
+          {accessToken && gameId && (
+            <GameChat gameId={gameId} accessToken={accessToken} />
           )}
         </div>
 
@@ -314,19 +503,33 @@ export default function GamePage() {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col gap-2 items-center justify-center min-h-0">
-          <NumberPad
-            onNumberClick={handleNumberClick}
-            onDelete={handleDelete}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            canUndo={moves.length > 0}
-            canRedo={redoMoves.length > 0}
-            pencilMode={pencilMode}
-            onTogglePencil={() => setPencilMode(m => !m)}
-            onCheck={handleCheck}
-            onSolve={handleSolve}
-          />
+        <div className="flex-1 flex flex-col items-center min-h-0">
+          <div className="flex-1 flex items-center justify-center">
+            <NumberPad
+              onNumberClick={handleNumberClick}
+              onDelete={handleDelete}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              canUndo={moves.length > initialMoveCount}
+              canRedo={redoMoves.length > 0}
+              pencilMode={pencilMode}
+              onTogglePencil={() => setPencilMode(m => !m)}
+              onCheck={handleCheck}
+              onSolve={handleSolve}
+            />
+          </div>
+          {templateId && (
+            <div className="flex flex-col gap-1 items-center w-[184px] md:w-64">
+              <span className="text-foreground/50 text-xs uppercase tracking-tight font-heading font-bold">Template ID</span>
+              <button
+                onClick={handleCopyTemplateId}
+                className="w-full bg-card border-2 border-secondary/20 text-foreground/70 hover:text-foreground hover:border-secondary/40 text-[10px] font-mono px-2 py-2 rounded-xl transition-colors text-center whitespace-nowrap"
+                title="Click to copy template ID"
+              >
+                {copyFeedback ? '✓ Copied!' : templateId}
+              </button>
+            </div>
+          )}
         </div>
       </main>
 

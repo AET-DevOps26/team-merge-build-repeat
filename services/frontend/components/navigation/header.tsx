@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "@/src/auth/auth-context"
+import { useGame } from "@/src/game-context"
+import { useTheme } from "@/src/theme-context"
 
 interface HeaderProps {
   showBackButton?: boolean
@@ -10,6 +12,8 @@ interface HeaderProps {
 export function Header({ showBackButton = false, variant = "default" }: HeaderProps) {
   const navigate = useNavigate()
   const { session, signOut } = useAuth()
+  const { setActiveGameId } = useGame()
+  const { theme, setTheme } = useTheme()
   const [signOutLoading, setSignOutLoading] = useState(false)
   const [signOutError, setSignOutError] = useState<string | null>(null)
 
@@ -22,8 +26,11 @@ export function Header({ showBackButton = false, variant = "default" }: HeaderPr
     setSignOutLoading(true)
     setSignOutError(null)
 
+    navigate("/", { replace: true })
     try {
       await signOut()
+      localStorage.removeItem("activeGameId")
+      setActiveGameId(null)
     } catch (err) {
       setSignOutError(err instanceof Error ? err.message : "Sign out failed.")
     } finally {
@@ -33,13 +40,13 @@ export function Header({ showBackButton = false, variant = "default" }: HeaderPr
 
   return (
     <header className="relative flex justify-between items-center w-full px-6 py-4 bg-primary border-b-4 border-secondary sticky top-0 z-40">
-      <button 
-        onClick={showBackButton ? () => navigate(-1) : undefined}
+      <button
+        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
         className="text-secondary hover:bg-black/10 transition-colors p-2 rounded-full"
-        aria-label={showBackButton ? "Go back" : "Menu"}
+        aria-label="Toggle theme"
       >
         <span className="material-symbols-outlined text-3xl">
-          {showBackButton ? "arrow_back" : "menu"}
+          {theme === "dark" ? "light_mode" : "dark_mode"}
         </span>
       </button>
       
