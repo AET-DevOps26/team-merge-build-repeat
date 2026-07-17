@@ -82,7 +82,7 @@ spec:
               memory: 32Mi
               cpu: 10m
             limits:
-              memory: 64Mi
+              memory: 512Mi
               cpu: 50m
       containers:
         - name: postgres-exporter
@@ -129,7 +129,7 @@ spec:
               memory: 32Mi
               cpu: 10m
             limits:
-              memory: 128Mi
+              memory: 512Mi
               cpu: 100m
       volumes:
         - name: app-secret
@@ -167,7 +167,7 @@ spec:
               memory: 32Mi
               cpu: 10m
             limits:
-              memory: 64Mi
+              memory: 512Mi
               cpu: 50m
       containers:
         - name: postgres-exporter
@@ -214,7 +214,7 @@ spec:
               memory: 32Mi
               cpu: 10m
             limits:
-              memory: 128Mi
+              memory: 512Mi
               cpu: 100m
       volumes:
         - name: chat-secret
@@ -276,7 +276,7 @@ spec:
               memory: 32Mi
               cpu: 10m
             limits:
-              memory: 64Mi
+              memory: 512Mi
               cpu: 50m
       containers:
         - name: prometheus
@@ -392,7 +392,7 @@ spec:
               memory: 32Mi
               cpu: 10m
             limits:
-              memory: 256Mi
+              memory: 512Mi
               cpu: 200m
       volumes:
         - name: data
