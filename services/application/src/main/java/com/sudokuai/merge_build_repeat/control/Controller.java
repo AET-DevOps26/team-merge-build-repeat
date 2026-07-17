@@ -117,7 +117,7 @@ public class Controller {
     @GetMapping("/games/{gameId}/pencil-marks")
     public ResponseEntity<List<List<List<Integer>>>> getCurrentStatePencilMarks(@PathVariable UUID gameId, @AuthenticationPrincipal Jwt jwt) {
         requireOwnership(gameId, callerUserId(jwt));
-        return ResponseEntity.ok(pencilMarksService.getPencilMarks(gameId));
+        return ResponseEntity.ok(pencilMarksService.getPencilMarks(gameId, gamePropertiesService.getCurrentState(gameId)));
     }
 
     @GetMapping("/games/{gameId}/pencil-mark-history")

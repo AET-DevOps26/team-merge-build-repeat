@@ -1,25 +1,22 @@
 package com.sudokuai.merge_build_repeat;
 
 import com.sudokuai.merge_build_repeat.model.PencilMarks;
-import com.sudokuai.merge_build_repeat.model.PencilMarkHistory;
 import com.sudokuai.merge_build_repeat.repository.PencilMarkHistoryRepository;
 import com.sudokuai.merge_build_repeat.repository.PencilMarksRepository;
 import com.sudokuai.merge_build_repeat.service.PencilMarksService;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,218 +31,68 @@ class PencilMarksServiceTest {
     @InjectMocks
     private PencilMarksService pencilMarksService;
 
-    @Nested
-    class UpdatePencilMark {
+    @Test
+    void deletePencilMarkShouldStoreOnlyTheRemovedCandidate() {
+        UUID gameId = UUID.randomUUID();
+        when(pencilMarksRepository.findByGameIdAndRowAndCol(gameId, 0, 2)).thenReturn(null);
 
-        @Test
-        void shouldCreateNewPencilMarkWhenNoneExistAtCoordinates() {
-            UUID gameId = UUID.randomUUID();
-            int row = 3;
-            int col = 5;
-            int value = 7;
+        assertTrue(pencilMarksService.deletePencilMark(gameId, 0, 2, 2));
 
-            when(pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, col)).thenReturn(null);
-
-            boolean result = pencilMarksService.updatePencilMark(gameId, row, col, value);
-
-            assertTrue(result);
-            ArgumentCaptor<PencilMarks> marksCaptor = ArgumentCaptor.forClass(PencilMarks.class);
-            verify(pencilMarksRepository, times(1)).save(marksCaptor.capture());
-
-            PencilMarks savedMarks = marksCaptor.getValue();
-            assertEquals(gameId, savedMarks.getGameId());
-            assertEquals(row, savedMarks.getRow());
-            assertEquals(col, savedMarks.getCol());
-            assertEquals("7", savedMarks.getMarks());
-        }
-
-        @Test
-        void shouldAppendToExistingPencilMarkWhenMarkValueIsNew() {
-            UUID gameId = UUID.randomUUID();
-            int row = 0;
-            int col = 0;
-            int value = 4;
-
-            PencilMarks existingMarks = new PencilMarks();
-            existingMarks.setGameId(gameId);
-            existingMarks.setRow(row);
-            existingMarks.setCol(col);
-            existingMarks.setMarks("123");
-
-            when(pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, col)).thenReturn(existingMarks);
-
-            boolean result = pencilMarksService.updatePencilMark(gameId, row, col, value);
-
-            assertTrue(result);
-            verify(pencilMarksRepository, times(1)).save(existingMarks);
-            assertEquals("1234", existingMarks.getMarks());
-        }
-
-        @Test
-        void shouldReturnFalseAndNotSaveWhenMarkValueAlreadyExists() {
-            UUID gameId = UUID.randomUUID();
-            int row = 1;
-            int col = 1;
-            int value = 5;
-
-            PencilMarks existingMarks = new PencilMarks();
-            existingMarks.setGameId(gameId);
-            existingMarks.setRow(row);
-            existingMarks.setCol(col);
-            existingMarks.setMarks("258");
-
-            when(pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, col)).thenReturn(existingMarks);
-
-            boolean result = pencilMarksService.updatePencilMark(gameId, row, col, value);
-
-            assertFalse(result);
-            verify(pencilMarksRepository, never()).save(any(PencilMarks.class));
-            assertEquals("258", existingMarks.getMarks()); // Remains unchanged
-        }
-
-        @ParameterizedTest
-        @CsvSource({
-                "-1, 0, 5",
-                "9, 0, 5",
-                "0, -1, 5",
-                "0, 9, 5",
-                "0, 0, 0",
-                "0, 0, 10"
-        })
-        void shouldReturnFalseWhenInputsAreOutOfBounds(int row, int col, int value) {
-            UUID gameId = UUID.randomUUID();
-
-            boolean result = pencilMarksService.updatePencilMark(gameId, row, col, value);
-
-            assertFalse(result);
-            verifyNoInteractions(pencilMarksRepository);
-        }
+        ArgumentCaptor<PencilMarks> captor = ArgumentCaptor.forClass(PencilMarks.class);
+        verify(pencilMarksRepository).save(captor.capture());
+        assertEquals("2", captor.getValue().getMarks());
     }
 
-    @Nested
-    class DeletePencilMark {
+    @Test
+    void updatePencilMarkShouldRemoveAnExclusionWhenTheCandidateIsRestored() {
+        UUID gameId = UUID.randomUUID();
+        PencilMarks excludedMarks = new PencilMarks();
+        excludedMarks.setGameId(gameId);
+        excludedMarks.setRow(0);
+        excludedMarks.setCol(2);
+        excludedMarks.setMarks("2");
+        when(pencilMarksRepository.findByGameIdAndRowAndCol(gameId, 0, 2)).thenReturn(excludedMarks);
 
-        @Test
-        void shouldRemoveValueFromExistingPencilMarks() {
-            UUID gameId = UUID.randomUUID();
-            int row = 4;
-            int column = 4;
-            int valueToDelete = 3;
+        assertTrue(pencilMarksService.updatePencilMark(gameId, 0, 2, 2));
 
-            PencilMarks existingMarks = new PencilMarks();
-            existingMarks.setGameId(gameId);
-            existingMarks.setRow(row);
-            existingMarks.setCol(column);
-            existingMarks.setMarks("135");
-
-            when(pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, column)).thenReturn(existingMarks);
-
-            pencilMarksService.deletePencilMark(gameId, row, column, valueToDelete);
-
-            verify(pencilMarksRepository, times(1)).save(existingMarks);
-            assertEquals("15", existingMarks.getMarks());
-        }
-
-        @Test
-        void shouldDoNothingWhenNoPencilMarksExistAtCoordinates() {
-            UUID gameId = UUID.randomUUID();
-            int row = 2;
-            int column = 2;
-
-            when(pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, column)).thenReturn(null);
-
-            pencilMarksService.deletePencilMark(gameId, row, column, 9);
-
-            verify(pencilMarksRepository, never()).save(any(PencilMarks.class));
-        }
+        verify(pencilMarksRepository).delete(excludedMarks);
     }
 
-    @Nested
-    class SaveToHistory {
+    @Test
+    void getPencilMarksShouldCalculateCandidatesAndApplyStoredExclusions() {
+        UUID gameId = UUID.randomUUID();
+        PencilMarks excludedMarks = new PencilMarks();
+        excludedMarks.setGameId(gameId);
+        excludedMarks.setRow(0);
+        excludedMarks.setCol(2);
+        excludedMarks.setMarks("2");
+        when(pencilMarksRepository.findByGameId(gameId)).thenReturn(List.of(excludedMarks));
 
-        @Test
-        void shouldPersistRemovalOfCalculatedDefaultCandidate() {
-            UUID gameId = UUID.randomUUID();
-            int row = 2;
-            int col = 6;
-            int value = 4;
-            when(pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, col)).thenReturn(null);
+        List<List<List<Integer>>> candidates = pencilMarksService.getPencilMarks(gameId, board());
 
-            pencilMarksService.saveToHistory(gameId, row, col, value, "REMOVE", false);
-
-            verify(pencilMarksRepository, never()).save(any(PencilMarks.class));
-            ArgumentCaptor<PencilMarkHistory> historyCaptor = ArgumentCaptor.forClass(PencilMarkHistory.class);
-            verify(pencilMarkHistoryRepository).save(historyCaptor.capture());
-            PencilMarkHistory entry = historyCaptor.getValue();
-            assertEquals(gameId, entry.getGameId());
-            assertEquals(row, entry.getRow());
-            assertEquals(col, entry.getCol());
-            assertEquals(value, entry.getValue());
-            assertEquals("REMOVE", entry.getAction());
-            assertFalse(entry.isInitial());
-        }
+        assertEquals(List.of(1, 4), candidates.get(0).get(2));
+        assertTrue(candidates.get(0).get(0).isEmpty());
     }
 
-    @Nested
-    class GetPencilMarks {
+    @Test
+    void updatePencilMarkShouldRejectCandidatesThatAreNotExcluded() {
+        UUID gameId = UUID.randomUUID();
+        when(pencilMarksRepository.findByGameIdAndRowAndCol(gameId, 0, 2)).thenReturn(null);
 
-        @Test
-        void shouldBuildAndPopulate9x9GridOfListsSuccessfully() {
-            UUID gameId = UUID.randomUUID();
+        assertFalse(pencilMarksService.updatePencilMark(gameId, 0, 2, 2));
+        verify(pencilMarksRepository, never()).save(any());
+    }
 
-            PencilMarks mark1 = new PencilMarks();
-            mark1.setGameId(gameId);
-            mark1.setRow(0);
-            mark1.setCol(2);
-            mark1.setMarks("15");
-
-            PencilMarks mark2 = new PencilMarks();
-            mark2.setGameId(gameId);
-            mark2.setRow(8);
-            mark2.setCol(8);
-            mark2.setMarks("9");
-
-            // Element belonging to a different gameId to test structural filtering condition
-            PencilMarks mixedMark = new PencilMarks();
-            mixedMark.setGameId(UUID.randomUUID());
-            mixedMark.setRow(4);
-            mixedMark.setCol(4);
-            mixedMark.setMarks("7");
-
-            when(pencilMarksRepository.findByGameId(gameId)).thenReturn(List.of(mark1, mark2, mixedMark));
-
-            List<List<List<Integer>>> gridResult = pencilMarksService.getPencilMarks(gameId);
-
-            assertNotNull(gridResult);
-            assertEquals(9, gridResult.size());
-            assertEquals(9, gridResult.get(0).size());
-
-            // Check populated marks matching the gameId
-            assertEquals(List.of(1, 5), gridResult.get(0).get(2));
-            assertEquals(List.of(9), gridResult.get(8).get(8));
-
-            // Check mismatched gameId wasn't mapped
-            assertTrue(gridResult.get(4).get(4).isEmpty());
-
-            // Check unpopulated cell yields an empty list container
-            assertTrue(gridResult.get(0).get(0).isEmpty());
-        }
-
-        @Test
-        void shouldReturnCompletelyEmpty9x9GridWhenNoMarksFound() {
-            UUID gameId = UUID.randomUUID();
-            when(pencilMarksRepository.findByGameId(gameId)).thenReturn(Collections.emptyList());
-
-            List<List<List<Integer>>> gridResult = pencilMarksService.getPencilMarks(gameId);
-
-            assertNotNull(gridResult);
-            assertEquals(9, gridResult.size());
-            for (int i = 0; i < 9; i++) {
-                assertEquals(9, gridResult.get(i).size());
-                for (int j = 0; j < 9; j++) {
-                    assertTrue(gridResult.get(i).get(j).isEmpty(), "Cell coordinates must initialize completely empty");
-                }
-            }
-        }
+    private List<List<Integer>> board() {
+        return List.of(
+                List.of(5, 3, 0, 0, 7, 0, 0, 0, 0),
+                List.of(6, 0, 0, 1, 9, 5, 0, 0, 0),
+                List.of(0, 9, 8, 0, 0, 0, 0, 6, 0),
+                List.of(8, 0, 0, 0, 6, 0, 0, 0, 3),
+                List.of(4, 0, 0, 8, 0, 3, 0, 0, 1),
+                List.of(7, 0, 0, 0, 2, 0, 0, 0, 6),
+                List.of(0, 6, 0, 0, 0, 0, 2, 8, 0),
+                List.of(0, 0, 0, 4, 1, 9, 0, 0, 5),
+                List.of(0, 0, 0, 0, 8, 0, 0, 7, 9));
     }
 }
