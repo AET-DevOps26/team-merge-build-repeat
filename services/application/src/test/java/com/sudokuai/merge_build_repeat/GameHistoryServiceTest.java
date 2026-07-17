@@ -4,6 +4,7 @@ import com.sudokuai.merge_build_repeat.dto.HistoryRecord;
 import com.sudokuai.merge_build_repeat.model.GameHistory;
 import com.sudokuai.merge_build_repeat.repository.GameHistoryRepository;
 import com.sudokuai.merge_build_repeat.service.GameHistoryService;
+import com.sudokuai.merge_build_repeat.service.GamePropertiesService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +25,9 @@ class GameHistoryServiceTest {
 
     @Mock
     private GameHistoryRepository repository;
+
+    @Mock
+    private GamePropertiesService gamePropertiesService;
 
     @InjectMocks
     private GameHistoryService gameHistoryService;
@@ -60,6 +64,7 @@ class GameHistoryServiceTest {
             Integer row = 0;
             Integer col = 8;
             Integer value = 9;
+            when(gamePropertiesService.isEditableCell(gameId, row, col)).thenReturn(true);
 
             boolean result = gameHistoryService.validateAndSaveMove(gameId, row, col, value);
 
@@ -72,6 +77,22 @@ class GameHistoryServiceTest {
             assertEquals(row, savedHistory.getRow());
             assertEquals(col, savedHistory.getCol());
             assertEquals(value, savedHistory.getValue());
+            verify(gamePropertiesService).updateGameProperties(gameId, row, col, value);
+        }
+
+        @Test
+        void shouldRejectMoveOnTemplateClue() {
+            UUID gameId = UUID.randomUUID();
+            Integer row = 0;
+            Integer col = 0;
+            Integer value = 9;
+            when(gamePropertiesService.isEditableCell(gameId, row, col)).thenReturn(false);
+
+            boolean result = gameHistoryService.validateAndSaveMove(gameId, row, col, value);
+
+            assertFalse(result);
+            verify(repository, never()).save(any(GameHistory.class));
+            verify(gamePropertiesService, never()).updateGameProperties(any(), any(), any(), any());
         }
     }
 
@@ -112,7 +133,7 @@ class GameHistoryServiceTest {
         @Test
         void shouldReturnEmptyListWhenNoHistoryExists() {
             UUID gameId = UUID.randomUUID();
-            when(repository.findByGameId(gameId)).thenReturn(Collections.emptyList());
+            when(repository.findByGameIdOrderByCreatedAtAsc(gameId)).thenReturn(Collections.emptyList());
 
             List<HistoryRecord> records = gameHistoryService.getHistoryRecords(gameId);
 

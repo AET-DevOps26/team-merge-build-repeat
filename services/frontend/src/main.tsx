@@ -10,13 +10,19 @@ import '@fontsource/space-grotesk/700.css'
 import './index.css'
 import App from './App'
 import { AuthProvider } from './auth/auth-context'
+import { GameProvider } from './game-context'
+import { ThemeProvider } from './theme-context'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <GameProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </GameProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </StrictMode>
 )

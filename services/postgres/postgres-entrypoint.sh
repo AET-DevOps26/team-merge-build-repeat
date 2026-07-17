@@ -11,7 +11,7 @@ PG_PID=$!
 # Forward signals to PostgreSQL to ensure graceful shutdown
 trap 'kill -TERM $PG_PID; wait $PG_PID' SIGTERM SIGINT
 
-# Wait for PostgreSQL to be ready
+# Wait for POSTGRES_USER to be ready — this naturally synchronizes with docker-entrypoint.sh init
 until pg_isready -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" 2>/dev/null; do
   if ! kill -0 $PG_PID 2>/dev/null; then
     wait $PG_PID

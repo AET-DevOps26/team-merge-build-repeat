@@ -1,6 +1,6 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from prometheus_fastapi_instrumentator import Instrumentator
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -52,9 +52,16 @@ async def root():
 
 
 @app.get("/sudoku")
-async def get_sudoku():
-    """Get a random Sudoku puzzle"""
-    sudoku = generate_sudoku()
+async def get_sudoku(difficulty: str = "medium"):
+    """Get a random Sudoku puzzle with specified difficulty
+
+    Args:
+        difficulty: One of 'easy' (0.3), 'medium' (0.5), or 'hard' (0.8)
+    """
+    try:
+        sudoku = generate_sudoku(difficulty)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return JSONResponse({"sudoku": sudoku})
 
 

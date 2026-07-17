@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 import httpx
 
 from genai_service.assistant import AssistantError
+from genai_service.chat_client import ChatServiceError
 from genai_service.main import create_app
 from genai_service.schemas import ChatResponse, GenerateChatAnswerRequest
 
@@ -118,6 +119,11 @@ class FailingAssistant:
         raise AssistantError("Assistant orchestration failed.")
 
 
+class ForbiddenChatClient(FakeChatClient):
+    async def get_chat(self, game_id: UUID, authorization: str) -> ChatResponse:
+        raise ChatServiceError("Chat service returned HTTP 403.", 403)
+
+
 def test_answer_chat_uses_history_and_stores_user_and_assistant_messages() -> None:
     async def run() -> None:
         app = create_app()
@@ -187,6 +193,25 @@ def test_answer_chat_requires_bearer_auth() -> None:
             )
 
         assert response.status_code == 401
+
+    asyncio.run(run())
+
+
+def test_answer_chat_preserves_forbidden_game_access() -> None:
+    async def run() -> None:
+        app = create_app()
+        app.state.chat_client = ForbiddenChatClient()
+        app.state.game_client = FakeGameClient()
+        app.state.assistant = FakeAssistant()
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            response = await client.post(
+                "/v1/chat/answer",
+                headers={"Authorization": "Bearer test-token"},
+                json={"gameId": str(uuid4()), "message": "Hilfe"},
+            )
+
+        assert response.status_code == 403
 
     asyncio.run(run())
 

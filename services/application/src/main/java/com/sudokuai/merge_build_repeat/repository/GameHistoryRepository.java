@@ -10,5 +10,9 @@ import java.util.UUID;
 @Repository
 public interface GameHistoryRepository extends JpaRepository<GameHistory, UUID> {
 
-    List<GameHistory> findByGameId(UUID gameId);
+    List<GameHistory> findByGameIdOrderByCreatedAtAsc(UUID gameId);
+
+    List<GameHistory> findByGameIdIn(List<UUID> gameIds);
+
+    void deleteByGameId(UUID gameId);
 }

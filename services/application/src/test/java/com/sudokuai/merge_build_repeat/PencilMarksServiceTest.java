@@ -1,6 +1,8 @@
 package com.sudokuai.merge_build_repeat;
 
 import com.sudokuai.merge_build_repeat.model.PencilMarks;
+import com.sudokuai.merge_build_repeat.model.PencilMarkHistory;
+import com.sudokuai.merge_build_repeat.repository.PencilMarkHistoryRepository;
 import com.sudokuai.merge_build_repeat.repository.PencilMarksRepository;
 import com.sudokuai.merge_build_repeat.service.PencilMarksService;
 import org.junit.jupiter.api.Nested;
@@ -25,6 +27,9 @@ class PencilMarksServiceTest {
 
     @Mock
     private PencilMarksRepository pencilMarksRepository;
+
+    @Mock
+    private PencilMarkHistoryRepository pencilMarkHistoryRepository;
 
     @InjectMocks
     private PencilMarksService pencilMarksService;
@@ -152,6 +157,32 @@ class PencilMarksServiceTest {
             pencilMarksService.deletePencilMark(gameId, row, column, 9);
 
             verify(pencilMarksRepository, never()).save(any(PencilMarks.class));
+        }
+    }
+
+    @Nested
+    class SaveToHistory {
+
+        @Test
+        void shouldPersistRemovalOfCalculatedDefaultCandidate() {
+            UUID gameId = UUID.randomUUID();
+            int row = 2;
+            int col = 6;
+            int value = 4;
+            when(pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, col)).thenReturn(null);
+
+            pencilMarksService.saveToHistory(gameId, row, col, value, "REMOVE", false);
+
+            verify(pencilMarksRepository, never()).save(any(PencilMarks.class));
+            ArgumentCaptor<PencilMarkHistory> historyCaptor = ArgumentCaptor.forClass(PencilMarkHistory.class);
+            verify(pencilMarkHistoryRepository).save(historyCaptor.capture());
+            PencilMarkHistory entry = historyCaptor.getValue();
+            assertEquals(gameId, entry.getGameId());
+            assertEquals(row, entry.getRow());
+            assertEquals(col, entry.getCol());
+            assertEquals(value, entry.getValue());
+            assertEquals("REMOVE", entry.getAction());
+            assertFalse(entry.isInitial());
         }
     }
 

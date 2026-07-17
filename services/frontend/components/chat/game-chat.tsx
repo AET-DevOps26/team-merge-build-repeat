@@ -17,6 +17,26 @@ function now(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
+function formatTimestamp(timestamp: string): string {
+  return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+}
+
+async function fetchChatHistory(gameId: string, accessToken: string, signal: AbortSignal): Promise<Message[]> {
+  const res = await fetch(`/chat/v1/chat/${gameId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    signal,
+  })
+  if (!res.ok) throw new Error(`Failed to load chat history: ${res.status}`)
+
+  const data: { messages: Array<{ id: string; role: "assistant" | "user"; content: string; createdAt: string }> } = await res.json()
+  return data.messages.map(message => ({
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    timestamp: formatTimestamp(message.createdAt),
+  }))
+}
+
 async function fetchAnswer(
   gameId: string,
   message: string,
@@ -39,16 +59,39 @@ export function GameChat({ gameId, accessToken }: GameChatProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
+  const [loadingHistory, setLoadingHistory] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
-  }, [messages, loading])
+  }, [messages, loading, loadingHistory])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    setMessages([])
+    setError(null)
+    setLoadingHistory(true)
+
+    fetchChatHistory(gameId, accessToken, controller.signal)
+      .then(messages => {
+        if (!controller.signal.aborted) setMessages(messages)
+      })
+      .catch(error => {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setError(error instanceof Error ? error.message : "Failed to load chat history")
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingHistory(false)
+      })
+
+    return () => controller.abort()
+  }, [gameId, accessToken])
 
   const handleSend = async () => {
     const trimmed = input.trim()
-    if (!trimmed || loading) return
+    if (!trimmed || loading || loadingHistory) return
 
     const userMessage: Message = {
       id: `${Date.now()}-user`,
@@ -81,7 +124,7 @@ export function GameChat({ gameId, accessToken }: GameChatProps) {
       <h2 className="text-lg font-bold text-foreground flex-shrink-0">AI Assistant</h2>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto flex flex-col gap-4 min-h-0">
-        {messages.length === 0 && !loading && (
+        {messages.length === 0 && !loading && !loadingHistory && (
           <div className="flex-1 flex items-center justify-center text-muted">
             <p>Ask the assistant for a hint…</p>
           </div>
@@ -89,7 +132,7 @@ export function GameChat({ gameId, accessToken }: GameChatProps) {
         {messages.map(message => (
           <ChatBubble key={message.id} message={message} />
         ))}
-        {loading && (
+        {(loading || loadingHistory) && (
           <div className="flex w-full justify-start">
             <div className="bg-card border-[1.5px] border-border rounded-tr-2xl rounded-br-2xl rounded-bl-2xl shadow-lg p-4">
               <span className="material-symbols-outlined text-accent animate-spin">progress_activity</span>
@@ -107,13 +150,13 @@ export function GameChat({ gameId, accessToken }: GameChatProps) {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && handleSend()}
-          disabled={loading}
+          disabled={loading || loadingHistory}
           placeholder="Type a message…"
           className="flex-1 bg-white/10 border-[1.5px] border-accent/50 text-foreground p-3 h-12 rounded-xl font-sans focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 placeholder:text-muted disabled:opacity-50 transition-all"
         />
         <button
           onClick={handleSend}
-          disabled={loading || !input.trim()}
+          disabled={loading || loadingHistory || !input.trim()}
           aria-label="Send message"
           className="bg-accent text-white w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-xl border-2 border-primary shadow-[2px_2px_0px_0px_var(--color-primary)] active:translate-y-1 active:translate-x-1 active:shadow-none transition-all hover:brightness-110 disabled:opacity-40 disabled:pointer-events-none"
         >

@@ -1,19 +1,22 @@
 package com.sudokuai.merge_build_repeat.service;
 
+import com.sudokuai.merge_build_repeat.dto.PencilMarkHistoryEntry;
+import com.sudokuai.merge_build_repeat.model.PencilMarkHistory;
 import com.sudokuai.merge_build_repeat.model.PencilMarks;
+import com.sudokuai.merge_build_repeat.repository.PencilMarkHistoryRepository;
 import com.sudokuai.merge_build_repeat.repository.PencilMarksRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @AllArgsConstructor
 public class PencilMarksService {
     PencilMarksRepository pencilMarksRepository;
+    PencilMarkHistoryRepository pencilMarkHistoryRepository;
 
 
     @Transactional
@@ -44,14 +47,57 @@ public class PencilMarksService {
     }
 
     @Transactional
-    public void deletePencilMark(UUID gameId, int row, int column, int value) {
-        PencilMarks marks = pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, column);
-        if (marks != null) {
-            String existingMarks = marks.getMarks();
-            existingMarks = existingMarks.replace(String.valueOf(value), "");
-            marks.setMarks(existingMarks);
-            pencilMarksRepository.save(marks);
+    public boolean deletePencilMark(UUID gameId, int row, int column, int value) {
+        if (row < 0 || row > 8 || column < 0 || column > 8 || value < 1 || value > 9) {
+            return false;
         }
+
+        PencilMarks marks = pencilMarksRepository.findByGameIdAndRowAndCol(gameId, row, column);
+        if (marks == null || !marks.getMarks().contains(String.valueOf(value))) {
+            return false;
+        }
+
+        marks.setMarks(marks.getMarks().replace(String.valueOf(value), ""));
+        pencilMarksRepository.save(marks);
+        return true;
+    }
+
+    @Transactional
+    public void saveToHistory(UUID gameId, int row, int col, int value, String action, boolean initial) {
+        if ("ADD".equals(action)) {
+            updatePencilMark(gameId, row, col, value);
+        } else if ("REMOVE".equals(action)) {
+            deletePencilMark(gameId, row, col, value);
+        } else {
+            return;
+        }
+
+        // Default candidates are calculated in the frontend and therefore are
+        // not necessarily present in pencil_marks.  Their removal still has
+        // to be recorded so it survives a reload.
+        pencilMarkHistoryRepository.save(new PencilMarkHistory(gameId, row, col, value, action, initial));
+    }
+
+    @Transactional
+    public void undoLastPencilMarkHistory(UUID gameId) {
+        List<PencilMarkHistory> history = pencilMarkHistoryRepository.findByGameIdOrderByCreatedAtAsc(gameId);
+        PencilMarkHistory last = null;
+        for (PencilMarkHistory h : history) {
+            if (!h.isInitial()) last = h;
+        }
+        if (last == null) return;
+        if ("ADD".equals(last.getAction())) {
+            deletePencilMark(gameId, last.getRow(), last.getCol(), last.getValue());
+        } else {
+            updatePencilMark(gameId, last.getRow(), last.getCol(), last.getValue());
+        }
+        pencilMarkHistoryRepository.delete(last);
+    }
+
+    public List<PencilMarkHistoryEntry> getPencilMarkHistory(UUID gameId) {
+        return pencilMarkHistoryRepository.findByGameIdOrderByCreatedAtAsc(gameId).stream()
+                .map(h -> new PencilMarkHistoryEntry(h.getRow(), h.getCol(), h.getValue(), h.getAction(), h.isInitial(), h.getCreatedAt()))
+                .toList();
     }
 
     public List<List<List<Integer>>> getPencilMarks(UUID gameId) {

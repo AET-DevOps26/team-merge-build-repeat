@@ -28,7 +28,7 @@ export default function LoginPage() {
     try {
       if (mode === "sign-in") {
         await signInWithPassword(email, password)
-        navigate(from, { replace: true })
+        navigate("/", { replace: true })
       } else {
         await signUpWithPassword(email, password)
         setMessage("Account created. Check your inbox if email confirmation is enabled.")

@@ -1,6 +1,7 @@
 package team_merge_build_repeat.chat_database_service.security;
 
 import org.springframework.stereotype.Component;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
@@ -15,13 +16,13 @@ public class DefaultGameAccessVerificationClient implements GameAccessVerificati
 	}
 
 	@Override
-	public GameAccessVerificationResult verify(UUID userId, UUID gameId) {
+	public GameAccessVerificationResult verify(UUID userId, UUID gameId, String authorization) {
 		try {
 			return applicationServiceRestClient.get()
 					.uri(uriBuilder -> uriBuilder
-							.path("/games/{gameId}/verify")
-							.queryParam("userId", userId)
+							.path("/v1/games/{gameId}/verify")
 							.build(gameId))
+					.header(HttpHeaders.AUTHORIZATION, authorization)
 					.exchange((request, response) -> switch (response.getStatusCode().value()) {
 						case 200 -> Boolean.TRUE.equals(response.bodyTo(Boolean.class))
 								? GameAccessVerificationResult.ALLOWED

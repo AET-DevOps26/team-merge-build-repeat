@@ -2,8 +2,12 @@ package com.sudokuai.merge_build_repeat;
 
 import com.sudokuai.merge_build_repeat.model.GameProperties;
 import com.sudokuai.merge_build_repeat.model.GameTemplate;
+import com.sudokuai.merge_build_repeat.repository.AccountRepository;
+import com.sudokuai.merge_build_repeat.repository.GameHistoryRepository;
 import com.sudokuai.merge_build_repeat.repository.GamePropertiesRepository;
 import com.sudokuai.merge_build_repeat.repository.GameTemplateRepository;
+import com.sudokuai.merge_build_repeat.repository.PencilMarkHistoryRepository;
+import com.sudokuai.merge_build_repeat.repository.PencilMarksRepository;
 import com.sudokuai.merge_build_repeat.service.GamePropertiesService;
 import com.sudokuai.merge_build_repeat.service.MapperService;
 import org.junit.jupiter.api.Nested;
@@ -30,7 +34,19 @@ class GamePropertiesServiceTest {
     private GamePropertiesRepository repository;
 
     @Mock
+    private AccountRepository accountRepository;
+
+    @Mock
     private GameTemplateRepository templateRepository;
+
+    @Mock
+    private GameHistoryRepository gameHistoryRepository;
+
+    @Mock
+    private PencilMarkHistoryRepository pencilMarkHistoryRepository;
+
+    @Mock
+    private PencilMarksRepository pencilMarksRepository;
 
     @Mock
     private MapperService mapperService;
@@ -39,35 +55,12 @@ class GamePropertiesServiceTest {
     private GamePropertiesService gamePropertiesService;
 
     @Nested
-    class SaveNewGameProperties {
-
-        @Test
-        void shouldSaveAndReturnPropertiesId() {
-            UUID gameId = UUID.randomUUID();
-            UUID templateId = UUID.randomUUID();
-            String currentState = "000000000";
-
-            // Assuming GameProperties generates an ID or you want to verify it returns whatever properties.getId() evaluates to.
-            UUID resultId = gamePropertiesService.saveNewGameProperties(gameId, templateId, currentState);
-
-            ArgumentCaptor<GameProperties> propertiesCaptor = ArgumentCaptor.forClass(GameProperties.class);
-            verify(repository, times(1)).save(propertiesCaptor.capture());
-
-            GameProperties savedProperties = propertiesCaptor.getValue();
-            assertEquals(gameId, savedProperties.getId()); // or wherever the constructor maps gameId
-            assertEquals(templateId, savedProperties.getTemplateId());
-            assertEquals(currentState, savedProperties.getCurrentState());
-            assertEquals(savedProperties.getId(), resultId);
-        }
-    }
-
-    @Nested
     class GetGamePropertiesByGameId {
 
         @Test
         void shouldReturnPropertiesWhenFound() {
             UUID gameId = UUID.randomUUID();
-            GameProperties properties = new GameProperties(gameId, UUID.randomUUID(), "state");
+            GameProperties properties = new GameProperties(gameId, UUID.randomUUID(), "state", UUID.randomUUID());
             when(repository.findById(gameId)).thenReturn(Optional.of(properties));
 
             GameProperties result = gamePropertiesService.getGamePropertiesByGameId(gameId);
@@ -94,7 +87,7 @@ class GamePropertiesServiceTest {
         void shouldReturnMappedListWhenPropertiesExist() {
             UUID gameId = UUID.randomUUID();
             String stateStr = "530070000...";
-            GameProperties properties = new GameProperties(gameId, UUID.randomUUID(), stateStr);
+            GameProperties properties = new GameProperties(gameId, UUID.randomUUID(), stateStr, UUID.randomUUID());
             List<List<Integer>> expectedGrid = List.of(List.of(5, 3, 0));
 
             when(repository.findById(gameId)).thenReturn(Optional.of(properties));
@@ -126,7 +119,7 @@ class GamePropertiesServiceTest {
             UUID templateId = UUID.randomUUID();
             String solutionStr = "534678912...";
 
-            GameProperties properties = new GameProperties(gameId, templateId, "current");
+            GameProperties properties = new GameProperties(gameId, templateId, "current", UUID.randomUUID());
             GameTemplate template = new GameTemplate();
             template.setSolutionData(solutionStr);
             List<List<Integer>> expectedGrid = List.of(List.of(5, 3, 4));
@@ -161,7 +154,7 @@ class GamePropertiesServiceTest {
             UUID templateId = UUID.randomUUID();
             String templateDataStr = "004070010...";
 
-            GameProperties properties = new GameProperties(gameId, templateId, "current");
+            GameProperties properties = new GameProperties(gameId, templateId, "current", UUID.randomUUID());
             GameTemplate template = new GameTemplate();
             template.setTemplateData(templateDataStr);
             List<List<Integer>> expectedGrid = List.of(List.of(0, 0, 4));
@@ -177,6 +170,36 @@ class GamePropertiesServiceTest {
     }
 
     @Nested
+    class IsEditableCell {
+
+        @Test
+        void shouldReturnFalseForTemplateClue() {
+            UUID gameId = UUID.randomUUID();
+            UUID templateId = UUID.randomUUID();
+            GameProperties properties = new GameProperties(gameId, templateId, "current", UUID.randomUUID());
+            GameTemplate template = new GameTemplate();
+            template.setTemplateData("5" + "0".repeat(80));
+            when(repository.findById(gameId)).thenReturn(Optional.of(properties));
+            when(templateRepository.findById(templateId)).thenReturn(Optional.of(template));
+
+            assertFalse(gamePropertiesService.isEditableCell(gameId, 0, 0));
+        }
+
+        @Test
+        void shouldReturnTrueForEmptyTemplateCell() {
+            UUID gameId = UUID.randomUUID();
+            UUID templateId = UUID.randomUUID();
+            GameProperties properties = new GameProperties(gameId, templateId, "current", UUID.randomUUID());
+            GameTemplate template = new GameTemplate();
+            template.setTemplateData("5" + "0".repeat(80));
+            when(repository.findById(gameId)).thenReturn(Optional.of(properties));
+            when(templateRepository.findById(templateId)).thenReturn(Optional.of(template));
+
+            assertTrue(gamePropertiesService.isEditableCell(gameId, 0, 1));
+        }
+    }
+
+    @Nested
     class UpdateGameProperties {
 
         @Test
@@ -184,7 +207,7 @@ class GamePropertiesServiceTest {
             UUID gameId = UUID.randomUUID();
             // 81 characters representing an empty board
             String initialState = "0".repeat(81);
-            GameProperties properties = new GameProperties(gameId, UUID.randomUUID(), initialState);
+            GameProperties properties = new GameProperties(gameId, UUID.randomUUID(), initialState, UUID.randomUUID());
 
             when(repository.findById(gameId)).thenReturn(Optional.of(properties));
 
@@ -259,5 +282,37 @@ class GamePropertiesServiceTest {
 
             verify(repository, never()).save(any(GameProperties.class));
         }
+    }
+
+    @Test
+    void shouldReplaceLatestGameReferenceWithAnotherOwnedGameBeforeDeletingGame() {
+        UUID gameId = UUID.randomUUID();
+        UUID replacementGameId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        GameProperties deletedGame = new GameProperties(gameId, UUID.randomUUID(), "state", userId);
+        GameProperties replacementGame = new GameProperties(replacementGameId, UUID.randomUUID(), "state", userId);
+        when(repository.findById(gameId)).thenReturn(Optional.of(deletedGame));
+        when(repository.findByUserIdOrderByIdAsc(userId)).thenReturn(List.of(deletedGame, replacementGame));
+
+        gamePropertiesService.deleteGame(gameId);
+
+        verify(accountRepository).replaceLatestGameId(gameId, replacementGameId);
+        verify(gameHistoryRepository).deleteByGameId(gameId);
+        verify(pencilMarkHistoryRepository).deleteByGameId(gameId);
+        verify(pencilMarksRepository).deleteByGameId(gameId);
+        verify(repository).deleteById(gameId);
+    }
+
+    @Test
+    void shouldClearLatestGameReferenceWhenDeletingUsersOnlyGame() {
+        UUID gameId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        GameProperties deletedGame = new GameProperties(gameId, UUID.randomUUID(), "state", userId);
+        when(repository.findById(gameId)).thenReturn(Optional.of(deletedGame));
+        when(repository.findByUserIdOrderByIdAsc(userId)).thenReturn(List.of(deletedGame));
+
+        gamePropertiesService.deleteGame(gameId);
+
+        verify(accountRepository).replaceLatestGameId(gameId, null);
     }
 }

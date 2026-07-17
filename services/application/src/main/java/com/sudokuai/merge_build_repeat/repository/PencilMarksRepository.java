@@ -13,4 +13,6 @@ public interface PencilMarksRepository extends JpaRepository<PencilMarks, UUID> 
     PencilMarks findByGameIdAndRowAndCol(UUID gameId, int row, int col);
 
     List<PencilMarks> findByGameId(UUID gameId);
+
+    void deleteByGameId(UUID gameId);
 }

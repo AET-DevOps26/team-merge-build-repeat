@@ -5,6 +5,7 @@ import java.util.UUID;
 public record GameResponse(
         List<List<Integer>> templateData,
         List<List<Integer>> solutionData,
-        UUID gameId
+        UUID gameId,
+        UUID templateId
 ) {}
 

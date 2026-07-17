@@ -6,8 +6,9 @@
 @source "./pages/**/*.tsx";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant light (&:is([data-theme=light] *));
 
-@theme inline {
+@theme {
   --font-sans: 'Epilogue', 'Epilogue Fallback', ui-sans-serif, system-ui, sans-serif;
   --font-heading: 'Space Grotesk', 'Space Grotesk Fallback', ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -69,4 +70,47 @@
   .font-heading {
     font-family: var(--font-heading);
   }
+}
+
+:is([data-theme=light], .light) {
+  --color-background: #ffffff;
+  --color-foreground: #1a1a1a;
+  --color-card: #f5f5f5;
+  --color-card-foreground: #1a1a1a;
+  --color-popover: #f5f5f5;
+  --color-popover-foreground: #1a1a1a;
+
+  --color-primary: #ffc300;
+  --color-primary-foreground: #1a1a1a;
+
+  --color-secondary: #4834d4;
+  --color-secondary-foreground: #ffffff;
+
+  --color-accent: #f97316;
+  --color-accent-foreground: #ffffff;
+
+  --color-muted: #e5e5e5;
+  --color-muted-foreground: #6b7280;
+
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+
+  --color-border: #e5e5e5;
+  --color-input: #e5e5e5;
+  --color-ring: #ffc300;
+
+  --color-chart-1: #ffc300;
+  --color-chart-2: #f97316;
+  --color-chart-3: #4834d4;
+  --color-chart-4: #dc2626;
+  --color-chart-5: #22c55e;
+
+  --color-sidebar: #ffffff;
+  --color-sidebar-foreground: #1a1a1a;
+  --color-sidebar-primary: #ffc300;
+  --color-sidebar-primary-foreground: #1a1a1a;
+  --color-sidebar-accent: #f97316;
+  --color-sidebar-accent-foreground: #ffffff;
+  --color-sidebar-border: #e5e5e5;
+  --color-sidebar-ring: #ffc300;
 }
