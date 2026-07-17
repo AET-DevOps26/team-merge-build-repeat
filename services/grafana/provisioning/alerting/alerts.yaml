@@ -1,52 +1,7 @@
 apiVersion: 1
 
 groups:
-  - orgId: 1
-    name: "System-Alert-Group"
-    folder: "Infrastructure Alerts"
-    interval: 60s
-    rules:
-      - uid: "cpu_usage_too_high"
-        title: "High CPU Usage Alert"
-        condition: "B" # Points to the threshold expression below
-        for: 5m
-        noDataState: "NoData"
-        execErrState: "Alerting"
-        annotations:
-          summary: "Instance CPU usage is high"
-          description: "CPU usage has exceeded 85% for more than 5 minutes."
-        labels:
-          severity: "warning"
-        data:
-          - refId: "A"
-            relativeTimeRange:
-              from: 300
-              to: 0
-            datasourceUid: "prometheus-ds" # Match your data source UID
-            model:
-              expr: "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode='idle'}[5m])) * 100)"
-              intervalMs: 1000
-              maxDataPoints: 43200
-              refId: "A"
-              type: "query"
-          - refId: "B"
-            datasourceUid: "-100" # -100 is Grafana's built-in expression engine
-            model:
-              conditions:
-                - evaluator:
-                    params: [85]
-                    type: "gt"
-                  operator:
-                    type: "and"
-                  query:
-                    params: ["A"]
-                  reducer:
-                    params: []
-                    type: "last"
-                  type: "query"
-              expression: "A"
-              refId: "B"
-              type: "threshold"
+
   - orgId: 1
     name: "app-alerts"
     folder: "Infrastructure"
@@ -163,79 +118,6 @@ groups:
                     type: gt
                     params: [500]
 
-      - uid: high-error-rate-http-server
-        title: High Error Rate - http_server_requests_seconds_count
-        condition: B
-        for: 5m
-        noDataState: NoData
-        execErrState: Error
-        annotations:
-          summary: High error rate detected
-          description: 5xx rate is above 5%.
-        labels:
-          severity: critical
-        data:
-          - refId: A
-            relativeTimeRange:
-              from: 300
-              to: 0
-            datasourceUid: prometheus-ds
-            model:
-              refId: A
-              expr: 100 * sum by (job) (rate(http_server_requests_seconds_count{status=~"5..",uri!~"/actuator.*"}[5m])) / clamp_min(sum by (job) (rate(http_server_requests_seconds_count{uri!~"/actuator.*"}[5m])), 0.000000001)
-              instant: true
-          - refId: B
-            datasourceUid: __expr__
-            model:
-              refId: B
-              type: threshold
-              expression: A
-              conditions:
-                - type: query
-                  reducer:
-                    type: last
-                  operator:
-                    type: and
-                  evaluator:
-                    type: gt
-                    params: [5]
-
-      - uid: high-error-rate-http-requests
-        title: High Error Rate - http_requests_total
-        condition: B
-        for: 5m
-        noDataState: NoData
-        execErrState: Error
-        annotations:
-          summary: High error rate detected
-          description: 5xx rate is above 5%.
-        labels:
-          severity: critical
-        data:
-          - refId: A
-            relativeTimeRange:
-              from: 300
-              to: 0
-            datasourceUid: prometheus-ds
-            model:
-              refId: A
-              expr: 100 * sum by (job) (rate(http_requests_total{status="5xx",handler!="/metrics"}[5m])) / clamp_min(sum by (job) (rate(http_requests_total{handler!="/metrics"}[5m])), 0.000000001)
-              instant: true
-          - refId: B
-            datasourceUid: __expr__
-            model:
-              refId: B
-              type: threshold
-              expression: A
-              conditions:
-                - type: query
-                  reducer:
-                    type: last
-                  operator:
-                    type: and
-                  evaluator:
-                    type: gt
-                    params: [5]
 
       - uid: high-db-rollback-rate
         title: High DB Rollback Rate
@@ -273,3 +155,232 @@ groups:
                   evaluator:
                     type: gt
                     params: [2]
+
+      - uid: spring_boot_down_alert
+        title: Spring Boot Application is DOWN
+        condition: B
+        for: 1m
+        noDataState: NoData
+        execErrState: Alerting
+        annotations:
+          summary: "App is down"
+          description: "The Spring Boot application application-service has been offline for more than 1 minute."
+        labels:
+          severity: critical
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-ds
+            model:
+              refId: A
+              expr: up{job="application-service"}
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  reducer:
+                    type: last
+                  operator:
+                    type: and
+                  evaluator:
+                    type: lt
+                    params: [1]
+
+
+      - uid: app_postgres_down
+        title: App PostgreSQL Down
+        condition: B
+        for: 1m
+        noDataState: NoData
+        execErrState: Alerting
+        annotations:
+          summary: "App database is down"
+          description: "Target app-db-exporter:9187 (job=app-databases) is down for more than 1 minute."
+        labels:
+          severity: critical
+          service: app-database
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-ds
+            model:
+              refId: A
+              expr: pg_up{job="app-databases",instance="app-db-exporter:9187"}
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  reducer:
+                    type: last
+                  operator:
+                    type: and
+                  evaluator:
+                    type: lt
+                    params: [ 1 ]
+
+      - uid: chat_postgres_down
+        title: Chat PostgreSQL Down
+        condition: B
+        for: 1m
+        noDataState: NoData
+        execErrState: Alerting
+        annotations:
+          summary: "Chat database is down"
+          description: "Target chat-db-exporter:9187 (job=chat-databases) is down for more than 1 minute."
+        labels:
+          severity: critical
+          service: chat-database
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-ds
+            model:
+              refId: A
+              expr: pg_up{job="chat-databases",instance="chat-db-exporter:9187"}
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  reducer:
+                    type: last
+                  operator:
+                    type: and
+                  evaluator:
+                    type: lt
+                    params: [ 1 ]
+
+      - uid: chat_service_down_alert
+        title: Chat Service Application is DOWN
+        condition: B
+        for: 1m
+        noDataState: NoData
+        execErrState: Alerting
+        annotations:
+          summary: "Instance chat:8080 is down"
+          description: "The Chat Service application chat-service has been offline for more than 1 minute."
+        labels:
+          severity: critical
+          service: chat-service
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-ds
+            model:
+              refId: A
+              expr: up{job="chat-service",instance="chat:8080"}
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  reducer:
+                    type: last
+                  operator:
+                    type: and
+                  evaluator:
+                    type: lt
+                    params: [ 1 ]
+
+      - uid: game_engine_service_down_alert
+        title: Game Engine Service Application is DOWN
+        condition: B
+        for: 1m
+        noDataState: NoData
+        execErrState: Alerting
+        annotations:
+          summary: "Instance game-engine:8080 is down"
+          description: "The Game Engine Service application game-engine-service has been offline for more than 1 minute."
+        labels:
+          severity: critical
+          service: game-engine-service
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-ds
+            model:
+              refId: A
+              expr: up{job="game-engine-service",instance="game-engine:8080"}
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  reducer:
+                    type: last
+                  operator:
+                    type: and
+                  evaluator:
+                    type: lt
+                    params: [ 1 ]
+
+      - uid: genai_service_down_alert
+        title: GenAI Service Application is DOWN
+        condition: B
+        for: 1m
+        noDataState: NoData
+        execErrState: Alerting
+        annotations:
+          summary: "Instance genai:8080 is down"
+          description: "The GenAI Service application genai-service has been offline for more than 1 minute."
+        labels:
+          severity: critical
+          service: genai-service
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus-ds
+            model:
+              refId: A
+              expr: up{job="genai-service",instance="genai:8080"}
+              instant: true
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  reducer:
+                    type: last
+                  operator:
+                    type: and
+                  evaluator:
+                    type: lt
+                    params: [ 1 ]
+
