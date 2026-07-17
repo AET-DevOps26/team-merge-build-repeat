@@ -81,7 +81,7 @@ export default function HistoryPage() {
       <main className="flex-1 flex flex-col items-center px-6 py-8 pb-24">
         <div className="w-full max-w-2xl">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="font-heading font-bold text-3xl text-white uppercase tracking-tight">
+            <h1 className="font-heading font-bold text-3xl text-foreground uppercase tracking-tight">
               Game History
             </h1>
             {games.length > 0 && (
