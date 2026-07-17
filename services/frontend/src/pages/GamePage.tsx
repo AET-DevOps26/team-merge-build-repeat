@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useParams, useLocation, useNavigate } from "react-router-dom"
 import { Header, BottomNav } from "@/components/navigation"
 import { SudokuGrid, NumberPad } from "@/components/game"
@@ -132,6 +132,7 @@ export default function GamePage() {
   const [wrongCells, setWrongCells] = useState<Set<string>>(new Set())
   const [correctCells, setCorrectCells] = useState<Set<string>>(new Set())
   const [copyFeedback, setCopyFeedback] = useState(false)
+  const prevFilledRef = useRef(false)
 
   const givenCells = useMemo(
     () => puzzle.map(row => row.map(cell => Boolean(cell))),
@@ -220,6 +221,16 @@ export default function GamePage() {
             return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           })
           .map(({ createdAt: _, ...move }) => move as Move)
+
+        // Pre-sync fill state so the auto-check effect doesn't fire on load
+        const loadedGrid = puzzle.map(row => [...row])
+        for (const move of merged) {
+          if (move.type === "number") loadedGrid[move.row][move.col] = move.value
+          else if (move.type === "batch") {
+            for (const m of move.moves) loadedGrid[m.row][m.col] = m.value
+          }
+        }
+        prevFilledRef.current = loadedGrid.every(row => row.every(cell => cell !== 0))
 
         setInitialMoveCount(0)
         setMoves(merged)
@@ -316,6 +327,7 @@ export default function GamePage() {
 
   const handleUndo = () => {
     if (moves.length <= initialMoveCount) return
+    prevFilledRef.current = false
     const lastMove = moves[moves.length - 1]
     const cellsToUnhighlight = new Set<string>()
 
@@ -362,6 +374,7 @@ export default function GamePage() {
 
   const handleRedo = () => {
     if (redoMoves.length === 0) return
+    prevFilledRef.current = false
     const moveToRedo = redoMoves[0]
     setRedoMoves(prev => prev.slice(1))
     setMoves(prev => [...prev, moveToRedo])
@@ -410,6 +423,24 @@ export default function GamePage() {
       setError(e instanceof Error ? e.message : "Failed to check solution")
     }
   }, [puzzle, grid, givenCells])
+
+  useEffect(() => {
+    let allFilled = true
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        if (!givenCells[r][c] && grid[r][c] === 0) {
+          allFilled = false
+          break
+        }
+      }
+      if (!allFilled) break
+    }
+
+    if (allFilled && !prevFilledRef.current && moves.length > 0) {
+      handleCheck()
+    }
+    prevFilledRef.current = allFilled
+  }, [grid, givenCells, moves.length, handleCheck])
 
   const handleSolve = useCallback(async () => {
     try {
