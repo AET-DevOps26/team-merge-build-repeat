@@ -164,7 +164,7 @@ groups:
         execErrState: Alerting
         annotations:
           summary: "App is down"
-          description: "The Spring Boot application {{ $labels.job }} has been offline for more than 1 minute."
+          description: "The Spring Boot application application-service has been offline for more than 1 minute."
         labels:
           severity: critical
         data:
