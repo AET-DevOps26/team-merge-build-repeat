@@ -194,22 +194,23 @@ export default function GamePage() {
     setWrongCells(new Set())
     setCorrectCells(new Set())
     try {
-      if (gameId) {
+      if (gameId && accessToken) {
+        const currentGameId = gameId
         // Load game from Application Service
-        const gameData = await fetchGameFromApplication(gameId, accessToken)
+        const gameData = await fetchGameFromApplication(currentGameId, accessToken)
         const puzzle = gameData.templateData.map(row => row.map(cell => cell ?? 0))
         setPuzzle(puzzle)
 
         // Fetch templateId if not set
         if (!templateId) {
-          const gameInfo = await fetchGameInfo(gameId, accessToken)
+          const gameInfo = await fetchGameInfo(currentGameId, accessToken)
           setTemplateId(gameInfo.templateId)
         }
 
         // Fetch both histories and merge in chronological order
         const [history, pencilHistory] = await Promise.all([
-          fetchGameHistory(gameId, accessToken),
-          fetchPencilMarkHistory(gameId, accessToken),
+          fetchGameHistory(currentGameId, accessToken),
+          fetchPencilMarkHistory(currentGameId, accessToken),
         ])
 
         type TimestampedMove = Move & { createdAt: string | null }
@@ -242,7 +243,7 @@ export default function GamePage() {
 
         setInitialMoveCount(0)
         setMoves(merged)
-        setActiveGameId(gameId)
+        setActiveGameId(currentGameId)
       } else {
         // Fallback: Load from Game Engine (old behavior)
         const raw = await fetchSudoku()

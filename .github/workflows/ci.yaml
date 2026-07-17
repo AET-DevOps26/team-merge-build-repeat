@@ -45,8 +45,8 @@ jobs:
         run: chmod +x ./gradlew
         working-directory: ${{ matrix.directory }}
 
-      - name: Run unit tests
-        run: ./gradlew test
+      - name: Run tests and static analysis
+        run: ./gradlew check
         working-directory: ${{ matrix.directory }}
 
       - name: Publish test report
@@ -98,3 +98,45 @@ jobs:
       - name: Run Python unit tests
         run: uv run pytest
         working-directory: ${{ matrix.directory }}
+
+      - name: Run Python linting
+        run: uv run ruff check .
+        working-directory: ${{ matrix.directory }}
+
+  frontend-quality:
+    name: Frontend quality checks
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: services/frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: services/frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run frontend linting
+        run: pnpm lint
+
+      - name: Run TypeScript static analysis
+        run: pnpm typecheck
+
+      - name: Build frontend
+        run: pnpm build
