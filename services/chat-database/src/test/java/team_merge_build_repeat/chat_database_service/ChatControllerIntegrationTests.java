@@ -80,7 +80,7 @@ class ChatControllerIntegrationTests {
 		@Bean
 		@Primary
 		GameAccessVerificationClient gameAccessVerificationClient() {
-			return (userId, gameId) -> {
+			return (userId, gameId, authorization) -> {
 				if (TEST_USER_ID.equals(userId)) {
 					return GameAccessVerificationResult.ALLOWED;
 				}

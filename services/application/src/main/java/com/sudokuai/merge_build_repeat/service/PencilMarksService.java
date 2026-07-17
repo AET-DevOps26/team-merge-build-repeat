@@ -64,18 +64,18 @@ public class PencilMarksService {
 
     @Transactional
     public void saveToHistory(UUID gameId, int row, int col, int value, String action, boolean initial) {
-        boolean changed;
         if ("ADD".equals(action)) {
-            changed = updatePencilMark(gameId, row, col, value);
+            updatePencilMark(gameId, row, col, value);
         } else if ("REMOVE".equals(action)) {
-            changed = deletePencilMark(gameId, row, col, value);
+            deletePencilMark(gameId, row, col, value);
         } else {
             return;
         }
 
-        if (changed) {
-            pencilMarkHistoryRepository.save(new PencilMarkHistory(gameId, row, col, value, action, initial));
-        }
+        // Default candidates are calculated in the frontend and therefore are
+        // not necessarily present in pencil_marks.  Their removal still has
+        // to be recorded so it survives a reload.
+        pencilMarkHistoryRepository.save(new PencilMarkHistory(gameId, row, col, value, action, initial));
     }
 
     @Transactional

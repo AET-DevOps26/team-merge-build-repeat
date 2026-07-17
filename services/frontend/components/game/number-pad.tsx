@@ -63,7 +63,12 @@ export function NumberPad({
         <button
           onClick={onDelete}
           aria-label="Delete"
-          className="bg-destructive text-white w-full h-14 md:h-20 flex items-center justify-center rounded-lg border-2 border-secondary shadow-[2px_2px_0px_0px_var(--color-secondary)] active:translate-y-1 active:translate-x-1 active:shadow-none transition-all hover:brightness-110"
+          className={cn(
+            "w-full h-14 md:h-20 flex items-center justify-center rounded-lg border-2 active:translate-y-1 active:translate-x-1 active:shadow-none transition-all hover:brightness-110",
+            pencilMode
+              ? "bg-gray-500 text-white border-gray-700 shadow-[2px_2px_0px_0px_#374151]"
+              : "bg-destructive text-white border-secondary shadow-[2px_2px_0px_0px_var(--color-secondary)]"
+          )}
         >
           <span className="material-symbols-outlined text-2xl md:text-3xl">backspace</span>
         </button>

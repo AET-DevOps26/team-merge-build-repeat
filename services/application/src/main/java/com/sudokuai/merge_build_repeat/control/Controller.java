@@ -13,6 +13,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +24,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @RequestMapping("/v1")
 public class Controller {
+
+    private static final Logger logger = LoggerFactory.getLogger(Controller.class);
 
     GameTemplateService gameTemplateService;
     GamePropertiesService gamePropertiesService;
@@ -36,7 +40,10 @@ public class Controller {
     private void requireOwnership(UUID gameId, UUID userId) {
         GameProperties game = gamePropertiesService.getGamePropertiesByGameId(gameId);
         if (game == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        if (!userId.equals(game.getUserId())) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        if (!userId.equals(game.getUserId())) {
+            logger.warn("Denied game access: gameId={}, callerUserId={}, ownerUserId={}", gameId, userId, game.getUserId());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
     }
 
     @Transactional
@@ -73,6 +80,17 @@ public class Controller {
     public ResponseEntity<List<List<Integer>>> getTemplate(@PathVariable UUID gameId, @AuthenticationPrincipal Jwt jwt) {
         requireOwnership(gameId, callerUserId(jwt));
         return ResponseEntity.ok(gamePropertiesService.getTemplateData(gameId));
+    }
+
+    /**
+     * Allows trusted internal services to verify ownership while forwarding the
+     * caller's JWT.  The user identity is derived from the token, never from a
+     * request parameter supplied by the calling service.
+     */
+    @GetMapping("/games/{gameId}/verify")
+    public ResponseEntity<Boolean> verifyGameAccess(@PathVariable UUID gameId, @AuthenticationPrincipal Jwt jwt) {
+        requireOwnership(gameId, callerUserId(jwt));
+        return ResponseEntity.ok(true);
     }
 
     @PostMapping("/games/{gameId}/history")

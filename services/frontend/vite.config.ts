@@ -26,6 +26,10 @@ export default defineConfig({
         target: isDocker ? 'http://genai:8080' : 'http://localhost:8002',
         rewrite: (path) => path.replace(/^\/genai/, ''),
       },
+      '/chat': {
+        target: isDocker ? 'http://chat:8080' : 'http://localhost:8083',
+        rewrite: (path) => path.replace(/^\/chat/, ''),
+      },
     },
   },
 })

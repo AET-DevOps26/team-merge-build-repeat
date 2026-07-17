@@ -20,6 +20,21 @@ from genai_service.settings import Settings, load_settings
 logger = logging.getLogger("genai_service")
 
 
+def _downstream_status(status_code: int | None) -> int:
+    """Preserve an authorization/not-found response from a downstream service.
+
+    A 5xx response is reserved for an unavailable or failing dependency; callers
+    can otherwise react correctly to a game that they are not allowed to access.
+    """
+    if status_code in {
+        status.HTTP_401_UNAUTHORIZED,
+        status.HTTP_403_FORBIDDEN,
+        status.HTTP_404_NOT_FOUND,
+    }:
+        return status_code
+    return status.HTTP_502_BAD_GATEWAY
+
+
 def _configure_logging(debug: bool) -> None:
     """Enable request-flow diagnostics without exposing request credentials."""
     if not debug:
@@ -142,7 +157,7 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
         except ChatServiceError as exc:
             logger.debug("Failed to load chat history for game_id=%s: %s", payload.game_id, exc)
             raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
+                status_code=_downstream_status(exc.status_code),
                 detail=str(exc),
             ) from exc
 
@@ -158,7 +173,7 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
         except GameServiceError as exc:
             logger.debug("Failed to load game data for game_id=%s: %s", payload.game_id, exc)
             raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
+                status_code=_downstream_status(exc.status_code),
                 detail=str(exc),
             ) from exc
 
@@ -198,7 +213,7 @@ def create_app(*, chat_model: Any | None = None) -> FastAPI:
         except ChatServiceError as exc:
             logger.debug("Failed to persist chat messages for game_id=%s: %s", payload.game_id, exc)
             raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
+                status_code=_downstream_status(exc.status_code),
                 detail=str(exc),
             ) from exc
 

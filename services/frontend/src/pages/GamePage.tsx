@@ -8,19 +8,20 @@ import { useGame } from "@/src/game-context"
 
 const EMPTY_GRID = Array.from({ length: 9 }, () => Array(9).fill(0))
 
-function computeInitialMarks(puzzle: number[][]): number[][][] {
+/** Returns all currently valid candidates for the supplied board state. */
+function computeCandidateMarks(grid: number[][]): number[][][] {
   const marks: number[][][] = Array.from({ length: 9 }, () =>
     Array.from({ length: 9 }, () => [] as number[])
   )
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
-      if (puzzle[r][c]) continue
+      if (grid[r][c]) continue
       const boxR = Math.floor(r / 3) * 3
       const boxC = Math.floor(c / 3) * 3
       for (let n = 1; n <= 9; n++) {
-        const inRow = puzzle[r].includes(n)
-        const inCol = puzzle.some(row => row[c] === n)
-        const inBox = puzzle.slice(boxR, boxR + 3).some(row => row.slice(boxC, boxC + 3).includes(n))
+        const inRow = grid[r].includes(n)
+        const inCol = grid.some(row => row[c] === n)
+        const inBox = grid.slice(boxR, boxR + 3).some(row => row.slice(boxC, boxC + 3).includes(n))
         if (!inRow && !inCol && !inBox)
           marks[r][c].push(n)
       }
@@ -133,7 +134,6 @@ export default function GamePage() {
   const [templateId, setTemplateId] = useState<string | null>((location.state as any)?.templateId || null)
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null)
   const [puzzle, setPuzzle] = useState<number[][]>(EMPTY_GRID)
-  const [initialMarks, setInitialMarks] = useState<number[][][]>([])
   const [moves, setMoves] = useState<Move[]>([])
   const [initialMoveCount, setInitialMoveCount] = useState(0)
   const [redoMoves, setRedoMoves] = useState<Move[]>([])
@@ -153,40 +153,37 @@ export default function GamePage() {
 
   const { grid, pencilMarks } = useMemo(() => {
     const g = puzzle.map(row => [...row])
-    const p: number[][][] = Array.from({ length: 9 }, (_, r) =>
-      Array.from({ length: 9 }, (_, c) => [...(initialMarks[r]?.[c] ?? [])])
-    )
-    const applyMove = (m: Move) => {
+    const pencilMoves: Extract<SingleMove, { type: "pencil" }>[] = []
+
+    const collectMoves = (m: Move) => {
       if (m.type === "batch") {
-        for (const batchMove of m.moves) applyMove(batchMove)
+        for (const batchMove of m.moves) collectMoves(batchMove)
       } else if (m.type === "number") {
         g[m.row][m.col] = m.value
-        p[m.row][m.col] = []
-        if (m.value !== 0) {
-          const boxR = Math.floor(m.row / 3) * 3
-          const boxC = Math.floor(m.col / 3) * 3
-          for (let i = 0; i < 9; i++) {
-            const peers: [number, number][] = [
-              [m.row, i],
-              [i, m.col],
-              [boxR + Math.floor(i / 3), boxC + (i % 3)],
-            ]
-            for (const [pr, pc] of peers)
-              p[pr][pc] = p[pr][pc].filter(mark => mark !== m.value)
-          }
-        }
       } else {
-        const marks = p[m.row][m.col]
-        const idx = marks.indexOf(m.value)
-        p[m.row][m.col] = idx === -1
-          ? [...marks, m.value].sort((a, b) => a - b)
-          : marks.filter(mark => mark !== m.value)
+        pencilMoves.push(m)
       }
     }
 
-    for (const move of moves) applyMove(move)
+    for (const move of moves) collectMoves(move)
+
+    // Rebuild candidates from the resulting board, rather than only removing
+    // them incrementally.  This also restores candidates when a number is undone.
+    const defaultMarks = computeCandidateMarks(g)
+    const p = defaultMarks.map(row => row.map(marks => [...marks]))
+    for (const move of pencilMoves) {
+      const marks = p[move.row][move.col]
+      if (move.action === "ADD") {
+        if (defaultMarks[move.row][move.col].includes(move.value) && !marks.includes(move.value)) {
+          p[move.row][move.col] = [...marks, move.value].sort((a, b) => a - b)
+        }
+      } else {
+        p[move.row][move.col] = marks.filter(mark => mark !== move.value)
+      }
+    }
+
     return { grid: g, pencilMarks: p }
-  }, [puzzle, moves, initialMarks])
+  }, [puzzle, moves])
 
   const loadNewGame = useCallback(async () => {
     setLoading(true)
@@ -202,7 +199,6 @@ export default function GamePage() {
         const gameData = await fetchGameFromApplication(gameId, accessToken)
         const puzzle = gameData.templateData.map(row => row.map(cell => cell ?? 0))
         setPuzzle(puzzle)
-        setInitialMarks(computeInitialMarks(puzzle))
 
         // Fetch templateId if not set
         if (!templateId) {

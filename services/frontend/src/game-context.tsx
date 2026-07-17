@@ -1,8 +1,8 @@
-import { createContext, useContext, useState, useEffect, useMemo } from "react"
+import { createContext, useContext, useState, useEffect, useMemo, useRef } from "react"
 import type { ReactNode } from "react"
 import { useAuth } from "@/src/auth/auth-context"
 
-const STORAGE_KEY = "activeGameId"
+const storageKeyFor = (userId: string) => `activeGameId:${userId}`
 
 interface GameContextValue {
   activeGameId: string | null
@@ -13,24 +13,29 @@ const GameContext = createContext<GameContextValue | null>(null)
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth()
-  const [activeGameId, setActiveGameIdState] = useState<string | null>(
-    () => localStorage.getItem(STORAGE_KEY)
-  )
+  const userId = session?.user.id ?? null
+  const previousUserId = useRef<string | null>(null)
+  const [activeGameId, setActiveGameIdState] = useState<string | null>(null)
+  const [hydratedUserId, setHydratedUserId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (activeGameId) {
-      localStorage.setItem(STORAGE_KEY, activeGameId)
-    } else {
-      localStorage.removeItem(STORAGE_KEY)
-    }
-  }, [activeGameId])
+    if (loading) return
 
-  useEffect(() => {
-    if (!loading && !session) {
+    if (previousUserId.current && previousUserId.current !== userId) {
       setActiveGameIdState(null)
-      localStorage.removeItem(STORAGE_KEY)
     }
-  }, [loading, session])
+
+    previousUserId.current = userId
+    setActiveGameIdState(userId ? localStorage.getItem(storageKeyFor(userId)) : null)
+    setHydratedUserId(userId)
+  }, [loading, userId])
+
+  useEffect(() => {
+    if (!userId || hydratedUserId !== userId) return
+    const key = storageKeyFor(userId)
+    if (activeGameId) localStorage.setItem(key, activeGameId)
+    else localStorage.removeItem(key)
+  }, [activeGameId, hydratedUserId, userId])
 
   const value = useMemo<GameContextValue>(() => ({
     activeGameId,
