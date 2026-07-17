@@ -27,12 +27,6 @@ public class GamePropertiesService {
     PencilMarksRepository pencilMarksRepository;
     MapperService mapperService;
 
-    public UUID saveNewGameProperties(UUID gameId, UUID templateId, String currentState) {
-        GameProperties properties = new GameProperties(gameId, templateId, currentState, null);
-        repository.save(properties);
-        return properties.getId();
-    }
-
 //    public void updateGameProperties(UUID gameId, String currentState) {
 //        GameProperties properties = repository.findById(gameId).orElse(null);
 //        if (properties != null) {

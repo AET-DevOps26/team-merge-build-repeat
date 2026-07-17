@@ -39,29 +39,6 @@ class GamePropertiesServiceTest {
     private GamePropertiesService gamePropertiesService;
 
     @Nested
-    class SaveNewGameProperties {
-
-        @Test
-        void shouldSaveAndReturnPropertiesId() {
-            UUID gameId = UUID.randomUUID();
-            UUID templateId = UUID.randomUUID();
-            String currentState = "000000000";
-
-            // Assuming GameProperties generates an ID or you want to verify it returns whatever properties.getId() evaluates to.
-            UUID resultId = gamePropertiesService.saveNewGameProperties(gameId, templateId, currentState);
-
-            ArgumentCaptor<GameProperties> propertiesCaptor = ArgumentCaptor.forClass(GameProperties.class);
-            verify(repository, times(1)).save(propertiesCaptor.capture());
-
-            GameProperties savedProperties = propertiesCaptor.getValue();
-            assertEquals(gameId, savedProperties.getId()); // or wherever the constructor maps gameId
-            assertEquals(templateId, savedProperties.getTemplateId());
-            assertEquals(currentState, savedProperties.getCurrentState());
-            assertEquals(savedProperties.getId(), resultId);
-        }
-    }
-
-    @Nested
     class GetGamePropertiesByGameId {
 
         @Test
