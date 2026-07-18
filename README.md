@@ -25,7 +25,7 @@ The Kubernetes deployment is available at [http://131.159.88.14/](http://131.159
 
 ### Azure Deployment
 
-The Azure deployment is available at [http://51.12.95.237/](http://51.12.95.237/).
+The Azure deployment is available at [http://20.91.217.55/](http://20.91.217.55/).
 
 > The Azure public IP address is not persistent. After `terraform destroy` and a subsequent Terraform deployment, Azure may assign a different IP address. Update this URL accordingly.
 
@@ -91,12 +91,12 @@ The Terraform provision and destroy workflows can also be started manually from 
 
 For Kubernetes and Azure, replace `<base-url>` with the current deployment URL. Services are addressed by the base URL followed by their service path.
 
-| Service | Health | Release information | API documentation |
-| --- | --- | --- | --- |
+| Service     | Health                                   | Release information                    | API documentation                              |
+| ----------- | ---------------------------------------- | -------------------------------------- | ---------------------------------------------- |
 | Application | `<base-url>/application/actuator/health` | `<base-url>/application/actuator/info` | `<base-url>/application/swagger-ui/index.html` |
-| Chat | `<base-url>/chat/actuator/health` | `<base-url>/chat/actuator/info` | `<base-url>/chat/swagger-ui/index.html` |
-| GenAI | `<base-url>/genai/actuator/health` | `<base-url>/genai/actuator/info` | `<base-url>/genai/docs` |
-| Game Engine | `<base-url>/game-engine/actuator/health` | `<base-url>/game-engine/actuator/info` | `<base-url>/game-engine/docs` |
+| Chat        | `<base-url>/chat/actuator/health`        | `<base-url>/chat/actuator/info`        | `<base-url>/chat/swagger-ui/index.html`        |
+| GenAI       | `<base-url>/genai/actuator/health`       | `<base-url>/genai/actuator/info`       | `<base-url>/genai/docs`                        |
+| Game Engine | `<base-url>/game-engine/actuator/health` | `<base-url>/game-engine/actuator/info` | `<base-url>/game-engine/docs`                  |
 
 Grafana is available at `<base-url>/grafana`. The default credentials are `admin` / `admin`.
 
